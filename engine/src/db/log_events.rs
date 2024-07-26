@@ -20,19 +20,19 @@ impl LogEvents {
             }
             UserCreated(info) => {
                 format!(
-                    "User {:?} was created by {}({})",
+                    "{:?} was created by {}({})",
                     info.subject, info.actor.name, info.actor.id
                 )
             }
             UserDeleted(info) => {
                 format!(
-                    "User {:?} was deleted by {}({})",
+                    "{:?} was deleted by {}({})",
                     info.subject, info.actor.name, info.actor.id
                 )
             }
             UserModified(info) => {
                 format!(
-                    "User {:?} was modified by {}({})",
+                    "{:?} was modified by {}({})",
                     info.subject, info.actor.name, info.actor.id,
                 )
             }

@@ -1,11 +1,10 @@
 use axum::{routing::get, Router};
-
 pub fn routes() -> Router {
     Router::new()
-        .route("/", get(health))
-        .route("/live", get(health))
-        .route("/health", get(health))
+        .route("/", get(healthcheck))
+        .route("/live", get(healthcheck))
+        .route("/health", get(healthcheck))
 }
 
 // 200 OK
-async fn health() -> () {}
+async fn healthcheck() -> () {}

@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["macros"] }
+base64 = "0.22.1"
+sqlite = "0.36.0"
 tokio = { version = "1.39.1", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+ulid = "1.1.3"

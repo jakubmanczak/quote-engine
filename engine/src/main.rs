@@ -2,6 +2,9 @@ use axum::Router;
 use tokio::net::TcpListener;
 use tracing::error;
 
+mod auth;
+mod db;
+mod error;
 mod routes;
 mod setup;
 
@@ -19,6 +22,8 @@ async fn main() {
         }
     };
     setup::report_listener_socket_addr(&listener);
+
+    db::execute_migration_queries();
 
     axum::serve(listener, app).await.unwrap();
 }

@@ -13,7 +13,7 @@ pub fn initialise_logging() {
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed!");
-    info!("quote-engine says hello! backend tracing up...");
+    info!("quote-engine says hello -> tracing initialised");
 }
 
 fn get_port() -> u16 {
@@ -28,7 +28,7 @@ fn get_port() -> u16 {
         Err(e) => {
             match e {
                 VarError::NotPresent => trace!("PORT environment variable not found"),
-                _ => info!("PORT environemtn variable error: {e}"),
+                _ => info!("PORT environment variable error: {e}"),
             }
             return 2019;
         }

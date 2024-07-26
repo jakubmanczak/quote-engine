@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug)]
 pub struct Quote {
     pub id: String,
@@ -30,7 +32,7 @@ pub struct Log {
     pub timestamp: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: String,
     pub name: String,

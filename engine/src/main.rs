@@ -5,6 +5,7 @@ use tracing::error;
 mod auth;
 mod db;
 mod error;
+mod models;
 mod routes;
 mod setup;
 
@@ -24,6 +25,7 @@ async fn main() {
     setup::report_listener_socket_addr(&listener);
 
     db::execute_migration_queries();
+    db::check_for_lack_of_account();
 
     axum::serve(listener, app).await.unwrap();
 }

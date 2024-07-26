@@ -1,0 +1,53 @@
+use super::get_conn;
+use crate::db::log_events::LogEvents::UserCreatedBySystem;
+use crate::{db::push_log, models::User};
+use argon2::{
+    password_hash::{rand_core::OsRng, SaltString},
+    Argon2, PasswordHasher,
+};
+use tracing::{error, info};
+use ulid::Ulid;
+
+const DEFAULT_ADMIN_CREATED: &str = "Default admin account created.";
+const REMOVE_DEFAULT_ADMIN: &str = "Please change the password or swap this account!";
+
+pub fn run() {
+    let conn = get_conn();
+    let q = "INSERT INTO users VALUES (:id, :name, :pass)";
+    let mut statement = conn.prepare(q).unwrap();
+
+    let ulid = Ulid::new().to_string();
+    let user = User {
+        id: ulid,
+        name: "admin".to_owned(),
+    };
+    let password = b"admin";
+    let salt = SaltString::generate(&mut OsRng);
+
+    let argon = Argon2::default();
+    let hash = match argon.hash_password(password, &salt) {
+        Ok(hash) => hash,
+        Err(e) => {
+            error!("could not hash default admin password: {e}");
+            panic!();
+        }
+    };
+
+    statement.bind((":id", user.id.as_str())).unwrap();
+    statement.bind((":name", user.name.as_str())).unwrap();
+    statement
+        .bind((":pass", hash.to_string().as_str()))
+        .unwrap();
+
+    match statement.next() {
+        Ok(_) => {
+            info!("{}", DEFAULT_ADMIN_CREATED);
+            info!("{}", REMOVE_DEFAULT_ADMIN);
+            push_log(UserCreatedBySystem(user));
+        }
+        Err(e) => {
+            error!("Could not create default admin account: {e}");
+            panic!();
+        }
+    }
+}

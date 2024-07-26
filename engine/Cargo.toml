@@ -6,8 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = "0.5.3"
 axum = { version = "0.7.5", features = ["macros"] }
 base64 = "0.22.1"
+chrono = "0.4.38"
+serde = "1.0.204"
+serde_json = "1.0.120"
 sqlite = "0.36.0"
 tokio = { version = "1.39.1", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors"] }

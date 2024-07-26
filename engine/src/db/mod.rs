@@ -1,8 +1,13 @@
 use std::env;
 
-use sqlite::Connection;
-use tracing::{error, trace};
+use chrono::Utc;
+use log_events::LogEvents;
+use sqlite::{Connection, State};
+use tracing::{error, info, trace};
+use ulid::Ulid;
 
+mod create_default_admin;
+mod log_events;
 mod tables;
 
 pub fn get_conn() -> Connection {
@@ -21,6 +26,40 @@ pub fn get_conn() -> Connection {
         Ok(conn) => conn,
         Err(e) => {
             error!("error establishing sqlite db conn: {e}");
+            panic!();
+        }
+    }
+}
+
+pub fn push_log(event: LogEvents) {
+    let string = LogEvents::get_string(event);
+    let ulid = Ulid::new().to_string();
+    let timestamp = Utc::now().timestamp();
+    info!("{}", string);
+
+    let conn = get_conn();
+    let q = "INSERT INTO logs VALUES (:id, :content, :timestamp)";
+    let mut statement = conn.prepare(q).unwrap();
+    statement.bind((":id", ulid.as_str()));
+    statement.bind((":content", string.as_str()));
+    statement.bind((":timestamp", timestamp));
+
+    match statement.next() {
+        Ok(_) => (),
+        Err(e) => error!("Could not push log to database: {e}"),
+    }
+}
+
+pub fn check_for_lack_of_account() {
+    let conn = get_conn();
+    let q = "SELECT * FROM users";
+    let mut statement = conn.prepare(q).unwrap();
+
+    match statement.next() {
+        Ok(State::Row) => (),
+        Ok(State::Done) => create_default_admin::run(),
+        Err(e) => {
+            error!("Could not check for users while preparing db - could the database be corrupt? ({e})");
             panic!();
         }
     }

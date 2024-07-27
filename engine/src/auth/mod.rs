@@ -15,8 +15,8 @@ pub enum AuthType {
 
 #[derive(Debug)]
 pub struct AuthBasic {
-    user: String,
-    pass: String,
+    pub user: String,
+    pub pass: String,
 }
 
 pub fn get_auth_from_header(headers: &HeaderMap) -> Option<AuthType> {

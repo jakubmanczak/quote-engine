@@ -7,8 +7,8 @@ pub enum LogEvents {
     UserModified(LogUserInfo),
 }
 pub struct LogUserInfo {
-    actor: User,
-    subject: User,
+    pub actor: User,
+    pub subject: User,
 }
 
 impl LogEvents {

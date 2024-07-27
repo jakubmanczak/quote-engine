@@ -4,7 +4,7 @@ use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use sqlite::State;
 use tracing::error;
 
-pub fn validate_basic_auth(auth: AuthBasic) -> bool {
+pub fn validate_basic_auth(auth: &AuthBasic) -> bool {
     let conn = get_conn();
     let q = "SELECT pass FROM users WHERE name = :name";
     let mut statement = conn.prepare(q).unwrap();

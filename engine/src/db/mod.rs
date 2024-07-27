@@ -7,7 +7,7 @@ use tracing::{error, info, trace};
 use ulid::Ulid;
 
 mod create_default_admin;
-mod log_events;
+pub mod log_events;
 mod tables;
 
 pub fn get_conn() -> Connection {

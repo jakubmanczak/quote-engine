@@ -7,6 +7,7 @@ use crate::{
             LogUserInfo,
         },
         push_log,
+        users::{get_user_data, GetUserDataInput},
     },
     models::{User, DEFAULT_COLOR, DEFAULT_PICTURE},
 };
@@ -120,31 +121,13 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    let actor: User;
-    {
-        let conn = get_conn();
-        let actorquery = "SELECT * FROM users WHERE name = :name";
-        let mut actorstatement = conn.prepare(actorquery).unwrap();
-        actorstatement.bind((":name", auth.user.as_str())).unwrap();
-        match actorstatement.next() {
-            Ok(State::Row) => {
-                actor = User {
-                    id: actorstatement.read("id").unwrap(),
-                    name: auth.user,
-                    color: actorstatement.read("color").unwrap(),
-                    picture: actorstatement.read("picture").unwrap(),
-                }
-            }
-            Ok(State::Done) => {
-                error!("Actor was authenticated but not present in users?");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            Err(e) => {
-                error!("{e}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
+    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+        Ok(user) => user,
+        Err(e) => {
+            error!("{e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
-    }
+    };
 
     let subject: User;
     {
@@ -212,57 +195,21 @@ async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    let actor: User;
-    {
-        let conn = get_conn();
-        let actorquery = "SELECT * FROM users WHERE name = :name";
-        let mut actorstatement = conn.prepare(actorquery).unwrap();
-        actorstatement.bind((":name", auth.user.as_str())).unwrap();
-        match actorstatement.next() {
-            Ok(State::Row) => {
-                actor = User {
-                    id: actorstatement.read("id").unwrap(),
-                    name: actorstatement.read("name").unwrap(),
-                    color: actorstatement.read("color").unwrap(),
-                    picture: actorstatement.read("picture").unwrap(),
-                };
-            }
-            Ok(State::Done) => {
-                error!("Actor was authenticated but not present in users?");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-            Err(e) => {
-                error!("{e}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
+    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+        Ok(user) => user,
+        Err(e) => {
+            error!("{e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
-    }
+    };
 
-    let subject: User;
-    {
-        let conn = get_conn();
-        let subjectquery = "SELECT * FROM users WHERE id = :id";
-        let mut subjectstatement = conn.prepare(subjectquery).unwrap();
-        subjectstatement.bind((":id", id.as_str())).unwrap();
-        match subjectstatement.next() {
-            Ok(State::Row) => {
-                subject = User {
-                    id: subjectstatement.read("id").unwrap(),
-                    name: subjectstatement.read("name").unwrap(),
-                    color: subjectstatement.read("color").unwrap(),
-                    picture: subjectstatement.read("picture").unwrap(),
-                };
-            }
-            Ok(State::Done) => {
-                let res = format!("No user with id {id} found.");
-                return (StatusCode::BAD_REQUEST, res).into_response();
-            }
-            Err(e) => {
-                error!("Could not search for desired user's name: {e}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-            }
+    let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
+        Ok(user) => user,
+        Err(e) => {
+            error!("{e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
-    }
+    };
 
     {
         let conn = get_conn();

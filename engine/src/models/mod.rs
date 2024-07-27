@@ -1,10 +1,28 @@
 use serde::{Deserialize, Serialize};
 
+pub const DEFAULT_COLOR: &str = "28166f";
+pub const DEFAULT_PICTURE: &str = "https://placewaifu.com/image/64";
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct User {
+    pub id: String,
+    pub name: String,
+    pub color: String,
+    pub picture: String,
+}
+
+#[derive(Debug)]
+pub struct Log {
+    pub id: String,
+    pub timestamp: u64,
+    pub content: String,
+}
+
 #[derive(Debug)]
 pub struct Quote {
     pub id: String,
     pub context: String,
-    pub timestamp: i32,
+    pub timestamp: u64,
     // assembled from db
     pub lines: Option<Vec<Line>>,
     pub authors: Option<Vec<Author>>,
@@ -14,7 +32,7 @@ pub struct Quote {
 pub struct Line {
     pub id: String,
     pub content: String,
-    pub position: u32,
+    pub position: u8,
     pub quote: String,
     pub author: String,
 }
@@ -23,17 +41,5 @@ pub struct Line {
 pub struct Author {
     pub id: String,
     pub name: String,
-}
-
-#[derive(Debug)]
-pub struct Log {
-    pub id: String,
-    pub content: String,
-    pub timestamp: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct User {
-    pub id: String,
-    pub name: String,
+    pub obfname: String,
 }

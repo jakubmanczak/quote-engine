@@ -8,7 +8,7 @@ use crate::{
         },
         push_log,
     },
-    models::User,
+    models::{User, DEFAULT_COLOR, DEFAULT_PICTURE},
 };
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
@@ -49,15 +49,17 @@ async fn get_users(headers: HeaderMap) -> Response {
     };
 
     let conn = get_conn();
-    let query = "SELECT id, name FROM users";
+    let query = "SELECT * FROM users";
     let mut statement = conn.prepare(query).unwrap();
 
     let mut users: Vec<User> = Vec::new();
     loop {
         match statement.next() {
             Ok(State::Row) => users.push(User {
-                id: statement.read::<String, _>("id").unwrap(),
-                name: statement.read::<String, _>("name").unwrap(),
+                id: statement.read("id").unwrap(),
+                name: statement.read("name").unwrap(),
+                color: statement.read("color").unwrap(),
+                picture: statement.read("picture").unwrap(),
             }),
             Ok(State::Done) => match users.is_empty() {
                 true => return (StatusCode::NOT_FOUND, NO_USERS).into_response(),
@@ -103,6 +105,8 @@ async fn get_users_count(headers: HeaderMap) -> Response {
 struct CreateUser {
     name: String,
     pass: String,
+    color: Option<String>,
+    picture: Option<String>,
 }
 async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Response {
     let auth = match get_auth_from_header(&headers) {
@@ -116,17 +120,20 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    let actorid: String;
-    let ulid = Ulid::new().to_string();
-
+    let actor: User;
     {
         let conn = get_conn();
-        let actorquery = "SELECT id FROM users WHERE name = :name";
+        let actorquery = "SELECT * FROM users WHERE name = :name";
         let mut actorstatement = conn.prepare(actorquery).unwrap();
         actorstatement.bind((":name", auth.user.as_str())).unwrap();
         match actorstatement.next() {
             Ok(State::Row) => {
-                actorid = actorstatement.read("id").unwrap();
+                actor = User {
+                    id: actorstatement.read("id").unwrap(),
+                    name: auth.user,
+                    color: actorstatement.read("color").unwrap(),
+                    picture: actorstatement.read("picture").unwrap(),
+                }
             }
             Ok(State::Done) => {
                 error!("Actor was authenticated but not present in users?");
@@ -139,25 +146,42 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         }
     }
 
+    let subject: User;
     {
+        let ulid = Ulid::new().to_string();
         let conn = get_conn();
-        let query = "INSERT INTO users VALUES (:id, :name, :pass)";
+        let query = "INSERT INTO users VALUES (:id, :name, :pass, :color, :picture)";
         let mut statement = conn.prepare(query).unwrap();
 
         let argon = Argon2::default();
         let salt = SaltString::generate(&mut OsRng);
         let hash = match argon.hash_password(body.pass.as_bytes(), &salt) {
-            Ok(hash) => hash,
+            Ok(hash) => hash.to_string(),
             Err(e) => {
                 error!("Could not hash new user password: {e}");
                 return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
             }
         };
 
-        statement.bind((":id", ulid.as_str())).unwrap();
-        statement.bind((":name", body.name.as_str())).unwrap();
+        subject = User {
+            id: ulid,
+            name: body.name,
+            color: match body.color {
+                Some(c) => c,
+                None => DEFAULT_COLOR.to_owned(),
+            },
+            picture: match body.picture {
+                Some(p) => p,
+                None => DEFAULT_PICTURE.to_owned(),
+            },
+        };
+
+        statement.bind((":id", subject.id.as_str())).unwrap();
+        statement.bind((":name", subject.name.as_str())).unwrap();
+        statement.bind((":pass", hash.as_str())).unwrap();
+        statement.bind((":color", subject.color.as_str())).unwrap();
         statement
-            .bind((":pass", hash.to_string().as_str()))
+            .bind((":picture", subject.picture.as_str()))
             .unwrap();
 
         match statement.next() {
@@ -170,20 +194,10 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
     }
 
     push_log(UserCreated(LogUserInfo {
-        actor: User {
-            id: actorid,
-            name: auth.user,
-        },
-        subject: User {
-            id: ulid.clone(),
-            name: body.name.clone(),
-        },
+        actor,
+        subject: subject.clone(),
     }));
-    return Json(User {
-        id: ulid,
-        name: body.name,
-    })
-    .into_response();
+    return Json(subject).into_response();
 }
 
 async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
@@ -198,15 +212,20 @@ async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
         None => return StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    let actorid: String;
+    let actor: User;
     {
         let conn = get_conn();
-        let actorquery = "SELECT id FROM users WHERE name = :name";
+        let actorquery = "SELECT * FROM users WHERE name = :name";
         let mut actorstatement = conn.prepare(actorquery).unwrap();
         actorstatement.bind((":name", auth.user.as_str())).unwrap();
         match actorstatement.next() {
             Ok(State::Row) => {
-                actorid = actorstatement.read("id").unwrap();
+                actor = User {
+                    id: actorstatement.read("id").unwrap(),
+                    name: actorstatement.read("name").unwrap(),
+                    color: actorstatement.read("color").unwrap(),
+                    picture: actorstatement.read("picture").unwrap(),
+                };
             }
             Ok(State::Done) => {
                 error!("Actor was authenticated but not present in users?");
@@ -219,15 +238,20 @@ async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
         }
     }
 
-    let subjectname: String;
+    let subject: User;
     {
         let conn = get_conn();
-        let subjectquery = "SELECT name FROM users WHERE id = :id";
+        let subjectquery = "SELECT * FROM users WHERE id = :id";
         let mut subjectstatement = conn.prepare(subjectquery).unwrap();
         subjectstatement.bind((":id", id.as_str())).unwrap();
         match subjectstatement.next() {
             Ok(State::Row) => {
-                subjectname = subjectstatement.read("name").unwrap();
+                subject = User {
+                    id: subjectstatement.read("id").unwrap(),
+                    name: subjectstatement.read("name").unwrap(),
+                    color: subjectstatement.read("color").unwrap(),
+                    picture: subjectstatement.read("picture").unwrap(),
+                };
             }
             Ok(State::Done) => {
                 let res = format!("No user with id {id} found.");
@@ -255,15 +279,6 @@ async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
         }
     }
 
-    push_log(UserDeleted(LogUserInfo {
-        actor: User {
-            id: actorid,
-            name: auth.user,
-        },
-        subject: User {
-            id: id,
-            name: subjectname,
-        },
-    }));
+    push_log(UserDeleted(LogUserInfo { actor, subject }));
     return StatusCode::NO_CONTENT.into_response();
 }

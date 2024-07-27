@@ -1,5 +1,6 @@
 use super::get_conn;
 use crate::db::log_events::LogEvents::UserCreatedBySystem;
+use crate::models::DEFAULT_COLOR;
 use crate::{db::push_log, models::User};
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
@@ -17,10 +18,12 @@ pub fn run() {
     let user = User {
         id: ulid,
         name: "admin".to_owned(),
+        color: DEFAULT_COLOR.to_owned(),
+        picture: "-".to_owned(),
     };
 
     {
-        let q = "INSERT INTO users VALUES (:id, :name, :pass)";
+        let q = "INSERT INTO users VALUES (:id, :name, :pass, :color, :picture)";
         let mut statement = conn.prepare(q).unwrap();
 
         let password = b"admin";
@@ -28,7 +31,7 @@ pub fn run() {
 
         let argon = Argon2::default();
         let hash = match argon.hash_password(password, &salt) {
-            Ok(hash) => hash,
+            Ok(hash) => hash.to_string(),
             Err(e) => {
                 error!("could not hash default admin password: {e}");
                 panic!();
@@ -37,9 +40,9 @@ pub fn run() {
 
         statement.bind((":id", user.id.as_str())).unwrap();
         statement.bind((":name", user.name.as_str())).unwrap();
-        statement
-            .bind((":pass", hash.to_string().as_str()))
-            .unwrap();
+        statement.bind((":pass", hash.as_str())).unwrap();
+        statement.bind((":color", user.color.as_str())).unwrap();
+        statement.bind((":picture", user.picture.as_str())).unwrap();
 
         match statement.next() {
             Ok(_) => (),

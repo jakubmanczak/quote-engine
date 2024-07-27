@@ -26,11 +26,12 @@ use sqlite::State;
 use tracing::error;
 use ulid::Ulid;
 
-const NO_USERS: &str = "NO USERS FOUND.";
+const NO_USERS: &str = "No users found.";
 
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/users", get(get_users))
+        .route("/users/count", get(get_users_count))
         .route("/users", post(post_users))
         .route("/users/:id", delete(delete_user))
 }
@@ -66,6 +67,34 @@ async fn get_users(headers: HeaderMap) -> Response {
                 error!("Error in GET /users: {e}");
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
+        }
+    }
+}
+
+async fn get_users_count(headers: HeaderMap) -> Response {
+    match get_auth_from_header(&headers) {
+        Some(auth) => match auth {
+            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
+                true => (),
+                false => return StatusCode::UNAUTHORIZED.into_response(),
+            },
+            _ => return StatusCode::UNAUTHORIZED.into_response(),
+        },
+        None => return StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    let conn = get_conn();
+    let query = "SELECT COUNT(*) FROM users";
+    let mut statement = conn.prepare(query).unwrap();
+    match statement.next() {
+        Ok(State::Row) => {
+            let count: i64 = statement.read(0).unwrap();
+            return count.to_string().into_response();
+        }
+        Ok(State::Done) => return (StatusCode::NOT_FOUND, NO_USERS).into_response(),
+        Err(e) => {
+            error!("Error in GET /users/count: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     }
 }

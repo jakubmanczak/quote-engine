@@ -16,6 +16,19 @@ pub fn initialise_logging() {
     info!("quote-engine says hello -> tracing initialised");
 }
 
+pub fn initialise_dotenv() {
+    match dotenvy::dotenv() {
+        Ok(_) => info!("loaded .env"),
+        Err(e) => {
+            if e.not_found() {
+                trace!(".env file not found; skipping...");
+            } else {
+                error!("error while loading .env: {e}");
+            }
+        }
+    };
+}
+
 fn get_port() -> u16 {
     match std::env::var("PORT") {
         Ok(portstr) => match portstr.parse() {

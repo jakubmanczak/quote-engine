@@ -13,6 +13,7 @@ mod setup;
 #[tokio::main]
 async fn main() {
     setup::initialise_logging();
+    setup::initialise_dotenv();
 
     let app = Router::new()
         .merge(routes::routes())

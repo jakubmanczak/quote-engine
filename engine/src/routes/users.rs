@@ -2,7 +2,10 @@ use crate::{
     auth::{get_auth_from_header, validate::validate_basic_auth, AuthType},
     db::{
         get_conn,
-        log_events::{LogEvents::UserCreated, LogUserInfo},
+        log_events::{
+            LogEvents::{UserCreated, UserDeleted},
+            LogUserInfo,
+        },
         push_log,
     },
     models::User,
@@ -12,9 +15,10 @@ use argon2::{
     Argon2, PasswordHasher,
 };
 use axum::{
+    extract::Path,
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde::Deserialize;
@@ -28,6 +32,7 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/users", get(get_users))
         .route("/users", post(post_users))
+        .route("/users/:id", delete(delete_user))
 }
 
 async fn get_users(headers: HeaderMap) -> Response {
@@ -150,4 +155,86 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         name: body.name,
     })
     .into_response();
+}
+
+async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
+    let auth = match get_auth_from_header(&headers) {
+        Some(auth) => match auth {
+            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
+                true => auth,
+                false => return StatusCode::UNAUTHORIZED.into_response(),
+            },
+            _ => return StatusCode::UNAUTHORIZED.into_response(),
+        },
+        None => return StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    let actorid: String;
+    {
+        let conn = get_conn();
+        let actorquery = "SELECT id FROM users WHERE name = :name";
+        let mut actorstatement = conn.prepare(actorquery).unwrap();
+        actorstatement.bind((":name", auth.user.as_str())).unwrap();
+        match actorstatement.next() {
+            Ok(State::Row) => {
+                actorid = actorstatement.read("id").unwrap();
+            }
+            Ok(State::Done) => {
+                error!("Actor was authenticated but not present in users?");
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+            Err(e) => {
+                error!("{e}");
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        }
+    }
+
+    let subjectname: String;
+    {
+        let conn = get_conn();
+        let subjectquery = "SELECT name FROM users WHERE id = :id";
+        let mut subjectstatement = conn.prepare(subjectquery).unwrap();
+        subjectstatement.bind((":id", id.as_str())).unwrap();
+        match subjectstatement.next() {
+            Ok(State::Row) => {
+                subjectname = subjectstatement.read("name").unwrap();
+            }
+            Ok(State::Done) => {
+                let res = format!("No user with id {id} found.");
+                return (StatusCode::BAD_REQUEST, res).into_response();
+            }
+            Err(e) => {
+                error!("Could not search for desired user's name: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    {
+        let conn = get_conn();
+        let query = "DELETE FROM users WHERE id = :id";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":id", id.as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => (),
+            Err(e) => {
+                error!("Could not delete user: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    push_log(UserDeleted(LogUserInfo {
+        actor: User {
+            id: actorid,
+            name: auth.user,
+        },
+        subject: User {
+            id: id,
+            name: subjectname,
+        },
+    }));
+    return StatusCode::NO_CONTENT.into_response();
 }

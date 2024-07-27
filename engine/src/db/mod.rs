@@ -1,14 +1,15 @@
-use std::env;
-
 use chrono::Utc;
 use log_events::LogEvents;
 use sqlite::{Connection, State};
+use std::env;
 use tracing::{error, info, trace};
 use ulid::Ulid;
 
 mod create_default_admin;
-pub mod log_events;
 mod tables;
+
+pub mod log_events;
+pub mod users;
 
 pub fn get_conn() -> Connection {
     let path = match env::var("DBPATH") {

@@ -6,6 +6,7 @@ pub enum Error {
     // quotes-engine specific
     HeaderParseError(String),
     BasicAuthError(String),
+    GetUserDataError(String),
 
     // imported
     DecodeError(base64::DecodeError),
@@ -17,6 +18,7 @@ impl Display for Error {
         match self {
             Error::HeaderParseError(err) => write!(f, "HeaderParseError: {}", err),
             Error::BasicAuthError(err) => write!(f, "BasicAuthError: {}", err),
+            Error::GetUserDataError(err) => write!(f, "GetUserDataError: {}", err),
             //
             Error::DecodeError(err) => write!(f, "{}", err),
             Error::FromUtf8Error(err) => write!(f, "{}", err),

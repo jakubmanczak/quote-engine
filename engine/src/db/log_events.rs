@@ -4,7 +4,6 @@ pub enum LogEvents {
     UserCreatedBySystem(User),
     UserCreated(LogUserInfo),
     UserDeleted(LogUserInfo),
-    UserModified(LogUserInfo),
 }
 pub struct LogUserInfo {
     pub actor: User,
@@ -28,12 +27,6 @@ impl LogEvents {
                 format!(
                     "{:?} was deleted by {}({})",
                     info.subject, info.actor.name, info.actor.id
-                )
-            }
-            UserModified(info) => {
-                format!(
-                    "{:?} was modified by {}({})",
-                    info.subject, info.actor.name, info.actor.id,
                 )
             }
         }

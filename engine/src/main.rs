@@ -7,6 +7,7 @@ mod auth;
 mod db;
 mod error;
 mod models;
+mod permissions;
 mod routes;
 mod setup;
 

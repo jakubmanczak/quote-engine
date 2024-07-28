@@ -1,5 +1,6 @@
 use axum::{routing::get, Router};
 
+mod permissions;
 mod users;
 
 pub fn routes() -> Router {
@@ -8,6 +9,7 @@ pub fn routes() -> Router {
         .route("/live", get(healthcheck))
         .route("/health", get(healthcheck))
         .merge(users::exported_routes())
+        .merge(permissions::exported_routes())
 }
 
 // 200 OK

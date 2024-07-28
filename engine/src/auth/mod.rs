@@ -5,6 +5,7 @@ use tracing::{error, info};
 
 mod decode_basic_auth;
 mod header_parse;
+
 pub mod validate;
 
 #[derive(Debug)]

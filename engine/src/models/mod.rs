@@ -9,6 +9,7 @@ pub struct User {
     pub name: String,
     pub color: String,
     pub picture: String,
+    pub permint: u32,
 }
 
 #[derive(Debug)]

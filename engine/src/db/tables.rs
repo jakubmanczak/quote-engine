@@ -3,6 +3,8 @@ pub static USERS: &str = "
         id          TEXT NOT NULL UNIQUE PRIMARY KEY,
         name        TEXT NOT NULL UNIQUE,
         pass        TEXT NOT NULL,
+        -- permissions bitflags
+        permissions INTEGER NOT NULL,
         -- accent color
         color       TEXT NOT NULL,
         -- profile picture

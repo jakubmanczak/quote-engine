@@ -1,6 +1,7 @@
 use super::get_conn;
 use crate::db::log_events::LogEvents::UserCreatedBySystem;
 use crate::models::DEFAULT_COLOR;
+use crate::permissions::UserPermission;
 use crate::{db::push_log, models::User};
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
@@ -20,10 +21,11 @@ pub fn run() {
         name: "admin".to_owned(),
         color: DEFAULT_COLOR.to_owned(),
         picture: "-".to_owned(),
+        permint: UserPermission::get_bit_from_permission(&UserPermission::Everything),
     };
 
     {
-        let q = "INSERT INTO users VALUES (:id, :name, :pass, :color, :picture)";
+        let q = "INSERT INTO users VALUES (:id, :name, :pass, :perms, :color, :picture)";
         let mut statement = conn.prepare(q).unwrap();
 
         let password = b"admin";
@@ -43,6 +45,7 @@ pub fn run() {
         statement.bind((":pass", hash.as_str())).unwrap();
         statement.bind((":color", user.color.as_str())).unwrap();
         statement.bind((":picture", user.picture.as_str())).unwrap();
+        statement.bind((":perms", i64::from(user.permint))).unwrap();
 
         match statement.next() {
             Ok(_) => (),

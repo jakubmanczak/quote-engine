@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use UserPermission::*;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum UserPermission {
     Everything,
     MutateOwnUser,
@@ -21,7 +21,14 @@ pub const USER_PERMISSIONS: [UserPermission; 5] = [
 pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
 
 impl UserPermission {
-    pub fn check_permission(perm: &UserPermission, bits: u32) -> bool {
+    pub fn check_permission(checked_perm: &UserPermission, perms: &Vec<UserPermission>) -> bool {
+        if perms.contains(&Everything) || perms.contains(checked_perm) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    pub fn check_permission_via_bits(perm: &UserPermission, bits: &u32) -> bool {
         for p in [&Everything, perm] {
             if bits & UserPermission::get_bit_from_permission(p) > 0 {
                 return true;
@@ -38,7 +45,7 @@ impl UserPermission {
         }
         return vec;
     }
-    pub fn get_bits_from_permissions(perms: Vec<UserPermission>) -> u32 {
+    pub fn get_bits_from_permissions(perms: &Vec<UserPermission>) -> u32 {
         let mut bits: u32 = 0;
         for perm in perms {
             bits |= UserPermission::get_bit_from_permission(&perm);

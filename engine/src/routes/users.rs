@@ -62,13 +62,15 @@ async fn get_users(headers: HeaderMap) -> Response {
                 name: statement.read("name").unwrap(),
                 color: statement.read("color").unwrap(),
                 picture: statement.read("picture").unwrap(),
-                permint: match u32::try_from(statement.read::<i64, _>("permissions").unwrap()) {
-                    Ok(u) => u,
-                    Err(e) => {
-                        let res = format!("Could not convert db i64 to bitflag u32: {e}");
-                        return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
-                    }
-                },
+                perms: UserPermission::get_permissions_from_bits(
+                    match u32::try_from(statement.read::<i64, _>("permissions").unwrap()) {
+                        Ok(u) => u,
+                        Err(e) => {
+                            let res = format!("Could not convert db i64 to bitflag u32: {e}");
+                            return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
+                        }
+                    },
+                ),
             }),
             Ok(State::Done) => match users.is_empty() {
                 true => return (StatusCode::NOT_FOUND, NO_USERS).into_response(),
@@ -137,7 +139,7 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         }
     };
 
-    match UserPermission::check_permission(&UserPermission::CreateUsers, actor.permint) {
+    match UserPermission::check_permission(&UserPermission::CreateUsers, &actor.perms) {
         true => (),
         false => return StatusCode::FORBIDDEN.into_response(),
     }
@@ -170,13 +172,17 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
                 Some(p) => p,
                 None => DEFAULT_PICTURE.to_owned(),
             },
-            permint: UserPermission::get_bits_from_permissions(Vec::from(DEFAULT_PERMISSIONS)),
+            perms: Vec::from(DEFAULT_PERMISSIONS),
         };
 
         st.bind((":id", subject.id.as_str())).unwrap();
         st.bind((":name", subject.name.as_str())).unwrap();
         st.bind((":pass", hash.as_str())).unwrap();
-        st.bind((":perms", i64::from(subject.permint))).unwrap();
+        st.bind((
+            ":perms",
+            i64::from(UserPermission::get_bits_from_permissions(&subject.perms)),
+        ))
+        .unwrap();
         st.bind((":color", subject.color.as_str())).unwrap();
         st.bind((":pic", subject.picture.as_str())).unwrap();
 
@@ -216,7 +222,7 @@ async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
         }
     };
 
-    match UserPermission::check_permission(&UserPermission::DeleteUsers, actor.permint) {
+    match UserPermission::check_permission(&UserPermission::DeleteUsers, &actor.perms) {
         true => (),
         false => return StatusCode::FORBIDDEN.into_response(),
     }

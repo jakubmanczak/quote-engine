@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::permissions::UserPermission;
+
 pub const DEFAULT_COLOR: &str = "28166f";
 pub const DEFAULT_PICTURE: &str = "https://placewaifu.com/image/64";
 
@@ -9,7 +11,7 @@ pub struct User {
     pub name: String,
     pub color: String,
     pub picture: String,
-    pub permint: u32,
+    pub perms: Vec<UserPermission>,
 }
 
 #[derive(Debug)]

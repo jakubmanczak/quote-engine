@@ -1,6 +1,6 @@
 use super::get_conn;
-use crate::error::Error;
 use crate::models::User;
+use crate::{error::Error, permissions::UserPermission};
 use sqlite::{State, Statement};
 
 #[derive(Debug, Clone)]
@@ -32,13 +32,15 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
                 name: st.read("name").unwrap(),
                 color: st.read("color").unwrap(),
                 picture: st.read("picture").unwrap(),
-                permint: match u32::try_from(st.read::<i64, _>("permissions").unwrap()) {
-                    Ok(u) => u,
-                    Err(e) => {
-                        let res = format!("Could not get u32 from i64: {e}");
-                        return Err(Error::GetUserDataError(res));
-                    }
-                },
+                perms: UserPermission::get_permissions_from_bits(
+                    match u32::try_from(st.read::<i64, _>("permissions").unwrap()) {
+                        Ok(u) => u,
+                        Err(e) => {
+                            let res = format!("Could not get u32 from i64: {e}");
+                            return Err(Error::GetUserDataError(res));
+                        }
+                    },
+                ),
             });
         }
         Ok(State::Done) => {

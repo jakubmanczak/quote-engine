@@ -21,7 +21,7 @@ pub fn run() {
         name: "admin".to_owned(),
         color: DEFAULT_COLOR.to_owned(),
         picture: "-".to_owned(),
-        permint: UserPermission::get_bit_from_permission(&UserPermission::Everything),
+        perms: vec![UserPermission::Everything],
     };
 
     {
@@ -45,7 +45,12 @@ pub fn run() {
         statement.bind((":pass", hash.as_str())).unwrap();
         statement.bind((":color", user.color.as_str())).unwrap();
         statement.bind((":picture", user.picture.as_str())).unwrap();
-        statement.bind((":perms", i64::from(user.permint))).unwrap();
+        statement
+            .bind((
+                ":perms",
+                i64::from(UserPermission::get_bits_from_permissions(&user.perms)),
+            ))
+            .unwrap();
 
         match statement.next() {
             Ok(_) => (),

@@ -3,8 +3,8 @@ use crate::{
     db::{
         get_conn,
         log_events::{
-            LogEvents::{UserCreated, UserDeleted},
-            LogUserInfo,
+            LogEvents::{UserCreated, UserDeleted, UserMutated},
+            LogUserInfo, LogUserMutatedInfo, UserMutation,
         },
         push_log,
         users::{get_user_data, GetUserDataInput},
@@ -319,19 +319,19 @@ async fn patch_user(
 
     let q =
         "UPDATE users SET name = :n, color = :c, picture = :pic, permissions = :prm WHERE id = :id";
-    let name = match body.name {
+    let name = match body.name.clone() {
         Some(n) => n,
-        None => subject.name,
+        None => subject.name.clone(),
     };
-    let color = match body.color {
+    let color = match body.color.clone() {
         Some(c) => c,
-        None => subject.color,
+        None => subject.color.clone(),
     };
-    let picture = match body.picture {
+    let picture = match body.picture.clone() {
         Some(pic) => pic,
-        None => subject.picture,
+        None => subject.picture.clone(),
     };
-    let perms = match body.perms {
+    let perms = match body.perms.clone() {
         Some(perms) => UserPermission::get_bits_from_permissions(&perms),
         None => UserPermission::get_bits_from_permissions(&subject.perms),
     };
@@ -353,6 +353,16 @@ async fn patch_user(
         }
     }
 
+    push_log(UserMutated(LogUserMutatedInfo {
+        actor,
+        subject,
+        patched: UserMutation {
+            name: body.name,
+            color: body.color,
+            picture: body.picture,
+            perms: body.perms,
+        },
+    }));
     return StatusCode::OK.into_response();
 }
 

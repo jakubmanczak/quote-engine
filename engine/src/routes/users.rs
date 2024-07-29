@@ -20,10 +20,10 @@ use axum::{
     extract::Path,
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Json, Router,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlite::State;
 use tracing::error;
 use ulid::Ulid;
@@ -36,6 +36,7 @@ pub fn exported_routes() -> Router {
         .route("/users/:id", get(get_user_by_id))
         .route("/users/count", get(get_users_count))
         .route("/users", post(post_users))
+        .route("/users/:id", patch(patch_user))
         .route("/users/:id", delete(delete_user))
 }
 
@@ -245,6 +246,114 @@ async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Respons
         subject: subject.clone(),
     }));
     return Json(subject).into_response();
+}
+
+#[derive(Deserialize, Serialize)]
+struct PatchUser {
+    name: Option<String>,
+    color: Option<String>,
+    picture: Option<String>,
+    perms: Option<Vec<UserPermission>>,
+}
+async fn patch_user(
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<PatchUser>,
+) -> Response {
+    let auth = match get_auth_from_header(&headers) {
+        Some(auth) => match auth {
+            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
+                true => auth,
+                false => return StatusCode::UNAUTHORIZED.into_response(),
+            },
+            _ => return StatusCode::UNAUTHORIZED.into_response(),
+        },
+        None => return StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+        Ok(user) => user,
+        Err(e) => {
+            error!("{e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    };
+    let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
+        Ok(user) => user,
+        Err(e) => match e {
+            crate::error::Error::NoRowsError(str) => {
+                return (StatusCode::BAD_REQUEST, str).into_response();
+            }
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        },
+    };
+
+    let mut checkperms: Vec<UserPermission> = Vec::new();
+    {
+        use UserPermission::*;
+        let oldperm_everything = subject.perms.contains(&Everything);
+        let newperm_everything = body.perms.clone().is_some_and(|v| v.contains(&Everything));
+        match actor.id == id {
+            true => checkperms.push(MutateOwnUser),
+            false => checkperms.push(MutateUsers),
+        }
+        if body.perms.is_some() {
+            checkperms.push(MutateUsersPermissions);
+        }
+        if oldperm_everything || newperm_everything {
+            checkperms.push(Everything);
+        }
+    }
+    for perm in checkperms {
+        match UserPermission::check_permission(&perm, &actor.perms) {
+            true => (),
+            false => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    format!("Lacking permission: {:?}", perm),
+                )
+                    .into_response()
+            }
+        }
+    }
+
+    let q =
+        "UPDATE users SET name = :n, color = :c, picture = :pic, permissions = :prm WHERE id = :id";
+    let name = match body.name {
+        Some(n) => n,
+        None => subject.name,
+    };
+    let color = match body.color {
+        Some(c) => c,
+        None => subject.color,
+    };
+    let picture = match body.picture {
+        Some(pic) => pic,
+        None => subject.picture,
+    };
+    let perms = match body.perms {
+        Some(perms) => UserPermission::get_bits_from_permissions(&perms),
+        None => UserPermission::get_bits_from_permissions(&subject.perms),
+    };
+    {
+        let conn = get_conn();
+        let mut st = conn.prepare(q).unwrap();
+        st.bind((":id", id.as_str())).unwrap();
+        st.bind((":n", name.as_str())).unwrap();
+        st.bind((":c", color.as_str())).unwrap();
+        st.bind((":pic", picture.as_str())).unwrap();
+        st.bind((":prm", i64::from(perms))).unwrap();
+
+        match st.next() {
+            Ok(_) => (),
+            Err(e) => {
+                error!("Could not PATCH user: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    return StatusCode::OK.into_response();
 }
 
 async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {

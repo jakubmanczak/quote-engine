@@ -2,6 +2,7 @@ use super::get_conn;
 use crate::models::User;
 use crate::{error::Error, permissions::UserPermission};
 use sqlite::{State, Statement};
+use tracing::error;
 
 #[derive(Debug, Clone)]
 pub enum GetUserDataInput {
@@ -44,12 +45,12 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
             });
         }
         Ok(State::Done) => {
-            let res = format!("No \"{:?}\" user found.", data);
-            return Err(Error::GetUserDataError(res));
+            let res = format!("No user of {:?} found.", data);
+            return Err(Error::NoRowsError(res));
         }
         Err(e) => {
-            let res = format!("SQL -> {e}");
-            return Err(Error::GetUserDataError(res));
+            error!("sqlite err in getuserdata: {e}");
+            return Err(Error::SqliteError(e));
         }
     }
 }

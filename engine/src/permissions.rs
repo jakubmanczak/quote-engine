@@ -8,14 +8,16 @@ pub enum UserPermission {
     CreateUsers,
     DeleteUsers,
     MutateUsers,
+    MutateUsersPermissions,
 }
 
-pub const USER_PERMISSIONS: [UserPermission; 5] = [
+pub const USER_PERMISSIONS: [UserPermission; 6] = [
     Everything,
     MutateOwnUser,
     CreateUsers,
     DeleteUsers,
     MutateUsers,
+    MutateUsersPermissions,
 ];
 
 pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
@@ -59,6 +61,7 @@ impl UserPermission {
             CreateUsers => 0b100,
             DeleteUsers => 0b1000,
             MutateUsers => 0b10000,
+            MutateUsersPermissions => 0b100000,
         }
     }
 }

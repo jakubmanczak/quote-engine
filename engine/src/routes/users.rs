@@ -37,6 +37,7 @@ pub fn exported_routes() -> Router {
         .route("/users/count", get(get_users_count))
         .route("/users", post(post_users))
         .route("/users/:id", patch(patch_user))
+        .route("/users/:id/changepassword", patch(patch_user_password))
         .route("/users/:id", delete(delete_user))
 }
 
@@ -364,6 +365,77 @@ async fn patch_user(
         },
     }));
     return StatusCode::OK.into_response();
+}
+
+#[derive(Deserialize)]
+struct PatchUserPassword {
+    pass: String,
+}
+async fn patch_user_password(
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<PatchUserPassword>,
+) -> Response {
+    let auth = match get_auth_from_header(&headers) {
+        Some(auth) => match auth {
+            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
+                true => auth,
+                false => return StatusCode::UNAUTHORIZED.into_response(),
+            },
+            _ => return StatusCode::UNAUTHORIZED.into_response(),
+        },
+        None => return StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+        Ok(user) => user,
+        Err(e) => {
+            error!("{e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    };
+
+    {
+        let perm = match actor.id == id {
+            true => UserPermission::MutateOwnUser,
+            false => UserPermission::MutateUsersPasswords,
+        };
+        match UserPermission::check_permission(&perm, &actor.perms) {
+            true => (),
+            false => return StatusCode::FORBIDDEN.into_response(),
+        }
+    }
+
+    let hash: String;
+    {
+        let argon = Argon2::default();
+        let salt = SaltString::generate(&mut OsRng);
+        hash = match argon.hash_password(body.pass.as_bytes(), &salt) {
+            Ok(h) => h.to_string(),
+            Err(e) => {
+                error!("Could not hash new user password: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+            }
+        }
+    }
+
+    {
+        let conn = get_conn();
+        let q = "UPDATE users SET pass = :p WHERE id = :id";
+        let mut statement = conn.prepare(q).unwrap();
+        statement.bind((":id", id.as_str())).unwrap();
+        statement.bind((":p", hash.as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => (),
+            Err(e) => {
+                error!("Could not update password: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+            }
+        }
+    }
+
+    (StatusCode::OK, "Password changed.").into_response()
 }
 
 async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {

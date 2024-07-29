@@ -33,6 +33,7 @@ const NO_USERS: &str = "No users found.";
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/users", get(get_users))
+        .route("/users/:id", get(get_user_by_id))
         .route("/users/count", get(get_users_count))
         .route("/users", post(post_users))
         .route("/users/:id", delete(delete_user))
@@ -80,6 +81,50 @@ async fn get_users(headers: HeaderMap) -> Response {
                 error!("Error in GET /users: {e}");
                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
+        }
+    }
+}
+
+async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response {
+    match get_auth_from_header(&headers) {
+        Some(auth) => match auth {
+            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
+                true => (),
+                false => return StatusCode::UNAUTHORIZED.into_response(),
+            },
+            _ => return StatusCode::UNAUTHORIZED.into_response(),
+        },
+        None => return StatusCode::UNAUTHORIZED.into_response(),
+    };
+
+    let conn = get_conn();
+    let query = "SELECT * FROM users WHERE id = :id";
+    let mut statement = conn.prepare(query).unwrap();
+    statement.bind((":id", id.as_str())).unwrap();
+
+    match statement.next() {
+        Ok(State::Row) => {
+            return Json(User {
+                id: statement.read("id").unwrap(),
+                name: statement.read("name").unwrap(),
+                color: statement.read("color").unwrap(),
+                picture: statement.read("picture").unwrap(),
+                perms: UserPermission::get_permissions_from_bits(
+                    match u32::try_from(statement.read::<i64, _>("permissions").unwrap()) {
+                        Ok(u) => u,
+                        Err(e) => {
+                            let res = format!("Could not convert db i64 to bitflag u32: {e}");
+                            return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
+                        }
+                    },
+                ),
+            })
+            .into_response()
+        }
+        Ok(State::Done) => return (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
+        Err(e) => {
+            error!("Error in GET /users/:id: {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     }
 }

@@ -1,0 +1,13 @@
+services:
+  engine:
+    build: ./engine/
+    ports:
+      - "2019:2019"
+    volumes:
+      - sqlite:/sqlite
+    environment:
+      - DBPATH=/sqlite/quotes.db
+  facade:
+    build: ./facade/
+    ports:
+      - "20190:3000"

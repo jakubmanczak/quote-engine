@@ -11,3 +11,5 @@ services:
     build: ./facade/
     ports:
       - "20190:3000"
+volumes:
+  sqlite:

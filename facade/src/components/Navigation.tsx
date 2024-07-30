@@ -40,9 +40,8 @@ const navigation: {
   },
   {
     name: "Logs",
-    href: "#logs",
+    href: "/logs",
     icon: <LucideFileClock />,
-    disabled: true,
   },
 ];
 

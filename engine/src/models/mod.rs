@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-
 use crate::permissions::UserPermission;
+use serde::{Deserialize, Serialize};
+use std::num::NonZeroU32;
 
 pub const DEFAULT_COLOR: &str = "28166f";
 pub const DEFAULT_PICTURE: &str = "https://placewaifu.com/image/64";
@@ -14,7 +14,7 @@ pub struct User {
     pub perms: Vec<UserPermission>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Log {
     pub id: String,
     pub timestamp: u64,
@@ -45,4 +45,10 @@ pub struct Author {
     pub id: String,
     pub name: String,
     pub obfname: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Pagination {
+    pub limit: NonZeroU32,
+    pub page: NonZeroU32,
 }

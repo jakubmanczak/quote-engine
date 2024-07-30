@@ -39,11 +39,11 @@ pub fn push_log(event: LogEvents) {
     info!("{}", string);
 
     let conn = get_conn();
-    let q = "INSERT INTO logs VALUES (:id, :content, :timestamp)";
+    let q = "INSERT INTO logs VALUES (:id, :timestamp, :content)";
     let mut statement = conn.prepare(q).unwrap();
     statement.bind((":id", ulid.as_str())).unwrap();
-    statement.bind((":content", string.as_str())).unwrap();
     statement.bind((":timestamp", timestamp)).unwrap();
+    statement.bind((":content", string.as_str())).unwrap();
 
     match statement.next() {
         Ok(_) => (),

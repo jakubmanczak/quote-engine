@@ -10,9 +10,10 @@ pub enum UserPermission {
     MutateUsers,
     MutateUsersPermissions,
     MutateUsersPasswords,
+    InspectLogs,
 }
 
-pub const USER_PERMISSIONS: [UserPermission; 7] = [
+pub const USER_PERMISSIONS: [UserPermission; 8] = [
     Everything,
     MutateOwnUser,
     CreateUsers,
@@ -20,6 +21,7 @@ pub const USER_PERMISSIONS: [UserPermission; 7] = [
     MutateUsers,
     MutateUsersPermissions,
     MutateUsersPasswords,
+    InspectLogs,
 ];
 
 pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
@@ -65,6 +67,7 @@ impl UserPermission {
             MutateUsers => 0b10000,
             MutateUsersPermissions => 0b100000,
             MutateUsersPasswords => 0b1000000,
+            InspectLogs => 0b1000000,
         }
     }
 }

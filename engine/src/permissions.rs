@@ -60,14 +60,14 @@ impl UserPermission {
     }
     pub fn get_bit_from_permission(perm: &UserPermission) -> u32 {
         match perm {
-            Everything => 0b1,
-            MutateOwnUser => 0b10,
-            CreateUsers => 0b100,
-            DeleteUsers => 0b1000,
-            MutateUsers => 0b10000,
-            MutateUsersPermissions => 0b100000,
-            MutateUsersPasswords => 0b1000000,
-            InspectLogs => 0b10000000,
+            Everything => 0b1 << 0,
+            MutateOwnUser => 0b1 << 1,
+            CreateUsers => 0b1 << 2,
+            DeleteUsers => 0b1 << 3,
+            MutateUsers => 0b1 << 4,
+            MutateUsersPermissions => 0b1 << 5,
+            MutateUsersPasswords => 0b1 << 6,
+            InspectLogs => 0b1 << 7,
         }
     }
 }

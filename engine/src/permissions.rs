@@ -67,7 +67,7 @@ impl UserPermission {
             MutateUsers => 0b10000,
             MutateUsersPermissions => 0b100000,
             MutateUsersPasswords => 0b1000000,
-            InspectLogs => 0b1000000,
+            InspectLogs => 0b10000000,
         }
     }
 }

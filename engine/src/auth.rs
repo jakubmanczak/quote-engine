@@ -19,11 +19,11 @@ const UNSUPPORTED_AUTH_SCHEME: &str = "Unsupported authorization scheme";
 pub fn authenticate(headers: &HeaderMap) -> Result<User, Error> {
     let authstr = match headers.get(AUTHORIZATION) {
         Some(header) => String::from_utf8(header.as_bytes().to_vec())?,
-        None => return Err(Error::RequestAuthError(NO_AUTH_HEADER_FOUND.to_string())),
+        None => return Err(Error::RequestAuthError(NO_AUTH_HEADER_FOUND.into())),
     };
     let (scheme, data) = match authstr.split_once(' ') {
         Some(parts) => parts,
-        None => return Err(Error::RequestAuthError(NO_AUTH_SCHEME_DATA.to_string())),
+        None => return Err(Error::RequestAuthError(NO_AUTH_SCHEME_DATA.into())),
     };
 
     match scheme {
@@ -31,7 +31,7 @@ pub fn authenticate(headers: &HeaderMap) -> Result<User, Error> {
             let (user, password) =
                 match String::from_utf8(BASE64_STANDARD.decode(data)?)?.split_once(':') {
                     Some((user, password)) => (user.to_string(), password.to_string()),
-                    None => return Err(Error::RequestAuthError(NO_BASIC_COLON_SPLIT.to_string())),
+                    None => return Err(Error::RequestAuthError(NO_BASIC_COLON_SPLIT.into())),
                 };
             let hashstr: String = {
                 let conn = get_conn();
@@ -42,7 +42,7 @@ pub fn authenticate(headers: &HeaderMap) -> Result<User, Error> {
                 match statement.next() {
                     Ok(State::Row) => statement.read("pass").unwrap(),
                     Ok(State::Done) => {
-                        return Err(Error::RequestAuthError(NO_USER_IN_DATABASE.to_string()))
+                        return Err(Error::RequestAuthError(NO_USER_IN_DATABASE.into()))
                     }
                     Err(e) => return Err(Error::SqliteError(e)),
                 }
@@ -52,15 +52,15 @@ pub fn authenticate(headers: &HeaderMap) -> Result<User, Error> {
                 Ok(h) => h,
                 Err(e) => {
                     info!("Could not parse database PHC string as password hash: {e}");
-                    return Err(Error::RequestAuthError(NO_PARSE_PHC_STRING.to_string()));
+                    return Err(Error::RequestAuthError(NO_PARSE_PHC_STRING.into()));
                 }
             };
 
             match argon.verify_password(password.as_bytes(), &hash).is_ok() {
                 true => return get_user_data(GetUserDataInput::Name(user)),
-                false => return Err(Error::RequestAuthError(NO_PASSWORD_MATCH.to_string())),
+                false => return Err(Error::RequestAuthError(NO_PASSWORD_MATCH.into())),
             }
         }
-        _ => Err(Error::RequestAuthError(UNSUPPORTED_AUTH_SCHEME.to_string())),
+        _ => Err(Error::RequestAuthError(UNSUPPORTED_AUTH_SCHEME.into())),
     }
 }

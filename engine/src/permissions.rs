@@ -34,14 +34,6 @@ impl UserPermission {
             return false;
         }
     }
-    // pub fn check_permission_via_bits(perm: &UserPermission, bits: &u32) -> bool {
-    //     for p in [&Everything, perm] {
-    //         if bits & UserPermission::get_bit_from_permission(p) > 0 {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
     pub fn get_permissions_from_bits(bits: u32) -> Vec<UserPermission> {
         let mut vec = Vec::new();
         for perm in USER_PERMISSIONS {

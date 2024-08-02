@@ -7,6 +7,11 @@ services:
       - sqlite:/sqlite
     environment:
       - DBPATH=/sqlite/quotes.db
+    develop:
+      watch:
+        - action: rebuild
+          path: ./engine
+          target: ./engine
   facade:
     build: ./facade/
     ports:

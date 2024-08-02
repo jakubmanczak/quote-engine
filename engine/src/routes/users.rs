@@ -1,5 +1,5 @@
 use crate::{
-    auth::{get_auth_from_header, validate::validate_basic_auth, AuthType},
+    auth::authenticate,
     db::{
         get_conn,
         log_events::{
@@ -42,15 +42,9 @@ pub fn exported_routes() -> Router {
 }
 
 async fn get_users(headers: HeaderMap) -> Response {
-    match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => (),
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
+    match authenticate(&headers) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
     };
 
     let conn = get_conn();
@@ -88,15 +82,9 @@ async fn get_users(headers: HeaderMap) -> Response {
 }
 
 async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => (),
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
+    match authenticate(&headers) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
     };
 
     let conn = get_conn();
@@ -132,15 +120,9 @@ async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response 
 }
 
 async fn get_users_count(headers: HeaderMap) -> Response {
-    match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => (),
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
+    match authenticate(&headers) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
     };
 
     let conn = get_conn();
@@ -167,23 +149,9 @@ struct CreateUser {
     picture: Option<String>,
 }
 async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Response {
-    let auth = match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => auth,
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
-    };
-
-    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+    let actor = match authenticate(&headers) {
         Ok(user) => user,
-        Err(e) => {
-            error!("{e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-        }
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::CreateUsers, &actor.perms) {
@@ -261,24 +229,11 @@ async fn patch_user(
     Path(id): Path<String>,
     Json(body): Json<PatchUser>,
 ) -> Response {
-    let auth = match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => auth,
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
+    let actor = match authenticate(&headers) {
+        Ok(user) => user,
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
 
-    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
-        Ok(user) => user,
-        Err(e) => {
-            error!("{e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-        }
-    };
     let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
         Ok(user) => user,
         Err(e) => match e {
@@ -376,23 +331,9 @@ async fn patch_user_password(
     Path(id): Path<String>,
     Json(body): Json<PatchUserPassword>,
 ) -> Response {
-    let auth = match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => auth,
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
-    };
-
-    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+    let actor = match authenticate(&headers) {
         Ok(user) => user,
-        Err(e) => {
-            error!("{e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-        }
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
 
     {
@@ -439,23 +380,9 @@ async fn patch_user_password(
 }
 
 async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    let auth = match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => auth,
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
-    };
-
-    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+    let actor = match authenticate(&headers) {
         Ok(user) => user,
-        Err(e) => {
-            error!("{e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-        }
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::DeleteUsers, &actor.perms) {

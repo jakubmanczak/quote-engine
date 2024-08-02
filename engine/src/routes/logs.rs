@@ -1,9 +1,6 @@
 use crate::{
-    auth::{get_auth_from_header, validate::validate_basic_auth, AuthType},
-    db::{
-        get_conn,
-        users::{get_user_data, GetUserDataInput},
-    },
+    auth::authenticate,
+    db::get_conn,
     models::{Log, Pagination},
     permissions::UserPermission,
 };
@@ -22,23 +19,9 @@ pub fn exported_routes() -> Router {
 }
 
 async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>) -> Response {
-    let auth = match get_auth_from_header(&headers) {
-        Some(auth) => match auth {
-            AuthType::Basic(auth) => match validate_basic_auth(&auth) {
-                true => auth,
-                false => return StatusCode::UNAUTHORIZED.into_response(),
-            },
-            _ => return StatusCode::UNAUTHORIZED.into_response(),
-        },
-        None => return StatusCode::UNAUTHORIZED.into_response(),
-    };
-
-    let actor = match get_user_data(GetUserDataInput::Name(auth.user)) {
+    let actor = match authenticate(&headers) {
         Ok(user) => user,
-        Err(e) => {
-            error!("{e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-        }
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::InspectLogs, &actor.perms) {

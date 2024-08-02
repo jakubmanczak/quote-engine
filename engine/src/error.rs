@@ -4,8 +4,7 @@ use std::{fmt::Display, string::FromUtf8Error};
 #[derive(Debug)]
 pub enum Error {
     // quotes-engine specific
-    HeaderParseError(String),
-    BasicAuthError(String),
+    RequestAuthError(String),
     GetUserDataError(String),
 
     // imported
@@ -20,8 +19,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::HeaderParseError(err) => write!(f, "HeaderParseError: {}", err),
-            Error::BasicAuthError(err) => write!(f, "BasicAuthError: {}", err),
+            Error::RequestAuthError(err) => write!(f, "RequestAuthError: {}", err),
             Error::GetUserDataError(err) => write!(f, "GetUserDataError: {}", err),
             //
             Error::DecodeError(err) => write!(f, "{}", err),

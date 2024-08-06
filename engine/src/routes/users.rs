@@ -1,5 +1,5 @@
 use crate::{
-    auth::authenticate,
+    auth::authenticate_via_basicauth,
     db::{
         get_conn,
         log_events::{
@@ -42,7 +42,7 @@ pub fn exported_routes() -> Router {
 }
 
 async fn get_users(headers: HeaderMap) -> Response {
-    match authenticate(&headers) {
+    match authenticate_via_basicauth(&headers) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -82,7 +82,7 @@ async fn get_users(headers: HeaderMap) -> Response {
 }
 
 async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    match authenticate(&headers) {
+    match authenticate_via_basicauth(&headers) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -120,7 +120,7 @@ async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response 
 }
 
 async fn get_users_count(headers: HeaderMap) -> Response {
-    match authenticate(&headers) {
+    match authenticate_via_basicauth(&headers) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -149,7 +149,7 @@ struct CreateUser {
     picture: Option<String>,
 }
 async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Response {
-    let actor = match authenticate(&headers) {
+    let actor = match authenticate_via_basicauth(&headers) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -229,7 +229,7 @@ async fn patch_user(
     Path(id): Path<String>,
     Json(body): Json<PatchUser>,
 ) -> Response {
-    let actor = match authenticate(&headers) {
+    let actor = match authenticate_via_basicauth(&headers) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -331,7 +331,7 @@ async fn patch_user_password(
     Path(id): Path<String>,
     Json(body): Json<PatchUserPassword>,
 ) -> Response {
-    let actor = match authenticate(&headers) {
+    let actor = match authenticate_via_basicauth(&headers) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -380,7 +380,7 @@ async fn patch_user_password(
 }
 
 async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    let actor = match authenticate(&headers) {
+    let actor = match authenticate_via_basicauth(&headers) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };

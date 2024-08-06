@@ -29,6 +29,16 @@ pub fn initialise_dotenv() {
     };
 }
 
+pub fn verify_secret_presence() {
+    match std::env::var("SECRET") {
+        Ok(_) => info!("SECRET found in environment"),
+        Err(e) => {
+            error!("error encountered while checking for SECRET: {e}");
+            panic!();
+        }
+    }
+}
+
 fn get_port() -> u16 {
     match std::env::var("PORT") {
         Ok(portstr) => match portstr.parse() {

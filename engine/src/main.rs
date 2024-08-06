@@ -1,6 +1,10 @@
-use axum::Router;
+use axum::{
+    http::{header::AUTHORIZATION, Method},
+    Router,
+};
 use tokio::net::TcpListener;
-use tower_http::cors::{Any, CorsLayer};
+use tower_cookies::CookieManagerLayer;
+use tower_http::cors::CorsLayer;
 use tracing::error;
 
 mod auth;
@@ -15,10 +19,23 @@ mod setup;
 async fn main() {
     setup::initialise_logging();
     setup::initialise_dotenv();
+    setup::verify_secret_presence();
 
+    let origins = [
+        "http://localhost:3000",
+        "http://localhost:2019",
+        "localhost",
+    ];
     let app = Router::new()
         .merge(routes::routes())
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any));
+        .layer(
+            CorsLayer::new()
+                .allow_origin(origins.map(|s| s.parse().unwrap()))
+                .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+                .allow_headers([AUTHORIZATION])
+                .allow_credentials(true),
+        )
+        .layer(CookieManagerLayer::new());
 
     let addr = setup::get_socket_addr();
     let listener = match TcpListener::bind(&addr).await {

@@ -15,15 +15,26 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  // fetch("http://localhost:2019/cookie", {
-  //   credentials: "include",
-  // });
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const sendloginrequest = () => {
-    toast("Login functionality unimplemented!");
-    router.push("/");
+  const sendloginrequest = async () => {
+    const head = new Headers();
+    head.append(
+      "Authorization",
+      `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
+    );
+    const res = await fetch("http://localhost:2019/auth/login", {
+      headers: head,
+      cache: "no-cache",
+    });
+    if (res.ok) {
+      router.push("/");
+      toast("Logged in sucessfully.");
+    } else {
+      const body = await res.text();
+      toast(body);
+    }
   };
   return (
     <div className="flex flex-col min-h-screen p-4">

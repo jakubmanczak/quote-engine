@@ -10,6 +10,7 @@ pub enum Error {
     // imported
     DecodeError(base64::DecodeError),
     FromUtf8Error(FromUtf8Error),
+    JsonWebTokenError(jsonwebtoken::errors::Error),
 
     // SQLite
     SqliteError(sqlite::Error),
@@ -24,6 +25,7 @@ impl Display for Error {
             //
             Error::DecodeError(err) => write!(f, "{}", err),
             Error::FromUtf8Error(err) => write!(f, "{}", err),
+            Error::JsonWebTokenError(err) => write!(f, "{}", err),
             //
             Error::SqliteError(err) => write!(f, "{}", err),
             Error::NoRowsError(err) => write!(f, "NoRowsError: {}", err),
@@ -40,6 +42,12 @@ impl From<base64::DecodeError> for Error {
 impl From<FromUtf8Error> for Error {
     fn from(err: FromUtf8Error) -> Error {
         Error::FromUtf8Error(err)
+    }
+}
+
+impl From<jsonwebtoken::errors::Error> for Error {
+    fn from(err: jsonwebtoken::errors::Error) -> Error {
+        Error::JsonWebTokenError(err)
     }
 }
 

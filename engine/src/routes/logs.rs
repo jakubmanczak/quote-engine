@@ -1,5 +1,5 @@
 use crate::{
-    auth::authenticate,
+    auth::authenticate_via_basicauth,
     db::get_conn,
     models::{Log, Pagination},
     permissions::UserPermission,
@@ -19,7 +19,7 @@ pub fn exported_routes() -> Router {
 }
 
 async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>) -> Response {
-    let actor = match authenticate(&headers) {
+    let actor = match authenticate_via_basicauth(&headers) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };

@@ -27,6 +27,7 @@ export default function LoginPage() {
     const res = await fetch("http://localhost:2019/auth/login", {
       headers: head,
       cache: "no-cache",
+      credentials: "include",
     });
     if (res.ok) {
       router.push("/");

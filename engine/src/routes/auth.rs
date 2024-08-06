@@ -14,7 +14,8 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/auth/check", get(check_login))
         .route("/users/self", get(check_login))
-        .route("/auth/login", get(login_handler))
+        .route("/auth/login", get(login))
+        .route("/auth/clear", get(clear_auth))
 }
 
 async fn check_login(headers: HeaderMap, cookies: Cookies) -> Response {
@@ -26,7 +27,18 @@ async fn check_login(headers: HeaderMap, cookies: Cookies) -> Response {
     return Json(actor).into_response();
 }
 
-async fn login_handler(headers: HeaderMap, cookies: Cookies) -> Response {
+async fn clear_auth(cookies: Cookies) -> Response {
+    let c = Cookie::build(AUTH_COOKIE_NAME)
+        .removal()
+        .http_only(true)
+        .path("/")
+        .build();
+    cookies.add(c);
+
+    StatusCode::OK.into_response()
+}
+
+async fn login(headers: HeaderMap, cookies: Cookies) -> Response {
     let actor = match authenticate_via_basicauth(&headers) {
         Ok(u) => u,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
@@ -50,7 +62,8 @@ async fn login_handler(headers: HeaderMap, cookies: Cookies) -> Response {
     let c = Cookie::build((AUTH_COOKIE_NAME, token.clone()))
         .max_age(tower_cookies::cookie::time::Duration::weeks(2))
         .http_only(true)
-        .secure(true)
+        .path("/")
+        // .secure(true)
         .build();
 
     cookies.add(c);

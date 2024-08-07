@@ -54,6 +54,7 @@ struct UserLoginCredentials {
     password: String,
 }
 async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Response {
+    const INCORRECT_CREDENTIALS: &str = "Incorrect credentials.";
     let hashstr: String = {
         let conn = get_conn();
         let q = "SELECT pass FROM users WHERE name = :name";
@@ -62,7 +63,9 @@ async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Resp
 
         match statement.next() {
             Ok(State::Row) => statement.read("pass").unwrap(),
-            Ok(State::Done) => return "No such user in db".into_response(),
+            Ok(State::Done) => {
+                return (StatusCode::UNAUTHORIZED, INCORRECT_CREDENTIALS).into_response()
+            }
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
         }
     };
@@ -87,7 +90,7 @@ async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Resp
             Ok(actor) => actor,
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
         },
-        false => return (StatusCode::UNAUTHORIZED, "bad password").into_response(),
+        false => return (StatusCode::UNAUTHORIZED, INCORRECT_CREDENTIALS).into_response(),
     };
 
     let claims = JsonWebTokenClaims {

@@ -14,14 +14,13 @@ import {
 } from "./ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { qfetch } from "@/lib/qfetch";
 
 const DashUser = (props: { className?: string }) => {
   const router = useRouter();
   const [user, setUser] = useState<user | "loggedout">("loggedout");
   const getUserState = async () => {
-    const res = await fetch("http://localhost:2019/users/self", {
-      credentials: "include",
-    });
+    const res = await qfetch("/users/self");
     if (!res.ok) {
       setUser("loggedout");
       return;
@@ -38,9 +37,7 @@ const DashUser = (props: { className?: string }) => {
     setUser(assembleduser);
   };
   const logOut = async () => {
-    const res = await fetch("http://localhost:2019/auth/clear", {
-      credentials: "include",
-    });
+    const res = await qfetch("/auth/clear");
     setUser("loggedout");
     router.push("/");
     toast("Logged out.");

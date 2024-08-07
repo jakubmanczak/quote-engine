@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { qfetch } from "@/lib/qfetch";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const sendloginrequest = async () => {
-    const res = await fetch("http://localhost:2019/auth/login", {
+    const res = await qfetch("/auth/login", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -28,7 +29,6 @@ export default function LoginPage() {
         username,
         password,
       }),
-      credentials: "include",
     });
     if (res.ok) {
       router.push("/");

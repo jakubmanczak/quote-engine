@@ -13,8 +13,13 @@ services:
           path: ./engine
           target: ./engine
   facade:
-    build: ./facade/
+    build:
+      context: ./facade/
+      args:
+        - NEXT_PUBLIC_SERVER_PATH=SET_THIS_TO_YOUR_API_ENDPOINT_ROOT
     ports:
       - "20190:3000"
+    environment:
+      - NODE_ENV=production
 volumes:
   sqlite:

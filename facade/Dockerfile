@@ -1,6 +1,8 @@
 FROM node:20
+ARG NEXT_PUBLIC_SERVER_PATH
 WORKDIR /facade
 COPY . .
+ENV NEXT_PUBLIC_SERVER_PATH $NEXT_PUBLIC_SERVER_PATH
 RUN npm install
 RUN npx next build
 CMD npx next start

@@ -1,5 +1,5 @@
 use crate::{
-    auth::authenticate_via_basicauth,
+    auth::authenticate,
     db::{
         get_conn,
         log_events::{
@@ -25,6 +25,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlite::State;
+use tower_cookies::Cookies;
 use tracing::error;
 use ulid::Ulid;
 
@@ -41,8 +42,8 @@ pub fn exported_routes() -> Router {
         .route("/users/:id", delete(delete_user))
 }
 
-async fn get_users(headers: HeaderMap) -> Response {
-    match authenticate_via_basicauth(&headers) {
+async fn get_users(headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -81,8 +82,8 @@ async fn get_users(headers: HeaderMap) -> Response {
     }
 }
 
-async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    match authenticate_via_basicauth(&headers) {
+async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
+    match authenticate(&headers, cookies) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -119,8 +120,8 @@ async fn get_user_by_id(headers: HeaderMap, Path(id): Path<String>) -> Response 
     }
 }
 
-async fn get_users_count(headers: HeaderMap) -> Response {
-    match authenticate_via_basicauth(&headers) {
+async fn get_users_count(headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
     };
@@ -148,8 +149,12 @@ struct CreateUser {
     color: Option<String>,
     picture: Option<String>,
 }
-async fn post_users(headers: HeaderMap, Json(body): Json<CreateUser>) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
+async fn post_users(
+    headers: HeaderMap,
+    cookies: Cookies,
+    Json(body): Json<CreateUser>,
+) -> Response {
+    let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -226,10 +231,11 @@ struct PatchUser {
 }
 async fn patch_user(
     headers: HeaderMap,
+    cookies: Cookies,
     Path(id): Path<String>,
     Json(body): Json<PatchUser>,
 ) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
+    let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -328,10 +334,11 @@ struct PatchUserPassword {
 }
 async fn patch_user_password(
     headers: HeaderMap,
+    cookies: Cookies,
     Path(id): Path<String>,
     Json(body): Json<PatchUserPassword>,
 ) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
+    let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };
@@ -379,8 +386,8 @@ async fn patch_user_password(
     (StatusCode::OK, "Password changed.").into_response()
 }
 
-async fn delete_user(headers: HeaderMap, Path(id): Path<String>) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
+async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
+    let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };

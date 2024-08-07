@@ -1,5 +1,5 @@
 use crate::{
-    auth::authenticate_via_basicauth,
+    auth::authenticate,
     db::get_conn,
     models::{Log, Pagination},
     permissions::UserPermission,
@@ -12,14 +12,15 @@ use axum::{
     Json, Router,
 };
 use sqlite::State;
+use tower_cookies::Cookies;
 use tracing::error;
 
 pub fn exported_routes() -> Router {
     Router::new().route("/logs", get(logs_route))
 }
 
-async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
+async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Cookies) -> Response {
+    let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
     };

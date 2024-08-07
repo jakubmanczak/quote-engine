@@ -23,9 +23,9 @@ const NO_PASSWORD_MATCH: &str = "Password incorrect.";
 const UNSUPPORTED_AUTH_SCHEME: &str = "Unsupported authorization scheme";
 // const NO_COOKIE: &str = "No quoteauth cookie found.";
 const NEITHER_HEADER_NOR_COOKIE: &str = "Neither an Authorization header nor a cookie were found.";
-const COOKIE_NO_SECURE: &str = "qauth cookie is not marked as Secure";
-const COOKIE_NO_HTTPONLY: &str = "quath cookie is not marked as HttpOnly";
-const COOKIE_NO_SECURE_NO_HTTPONLY: &str = "quath cookie is not marked as Secure or HttpOnly";
+// const COOKIE_NO_SECURE: &str = "qauth cookie is not marked as Secure";
+// const COOKIE_NO_HTTPONLY: &str = "quath cookie is not marked as HttpOnly";
+// const COOKIE_NO_SECURE_NO_HTTPONLY: &str = "quath cookie is not marked as Secure or HttpOnly";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonWebTokenClaims {

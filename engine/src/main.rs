@@ -1,5 +1,8 @@
 use axum::{
-    http::{header::AUTHORIZATION, Method},
+    http::{
+        header::{AUTHORIZATION, CONTENT_TYPE},
+        Method,
+    },
     Router,
 };
 use tokio::net::TcpListener;
@@ -21,18 +24,14 @@ async fn main() {
     setup::initialise_dotenv();
     setup::verify_secret_presence();
 
-    let origins = [
-        "http://localhost:3000",
-        "http://localhost:2019",
-        "localhost",
-    ];
+    let origins = ["http://localhost:3000"];
     let app = Router::new()
         .merge(routes::routes())
         .layer(
             CorsLayer::new()
                 .allow_origin(origins.map(|s| s.parse().unwrap()))
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-                .allow_headers([AUTHORIZATION])
+                .allow_headers([AUTHORIZATION, CONTENT_TYPE])
                 .allow_credentials(true),
         )
         .layer(CookieManagerLayer::new());

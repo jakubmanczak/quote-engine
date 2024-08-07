@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const DashUser = (props: { className?: string }) => {
   const router = useRouter();
@@ -42,6 +43,7 @@ const DashUser = (props: { className?: string }) => {
     });
     setUser("loggedout");
     router.push("/");
+    toast("Logged out.");
   };
   useEffect(() => {
     getUserState();

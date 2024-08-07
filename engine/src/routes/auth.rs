@@ -1,20 +1,30 @@
-use crate::auth::{authenticate, authenticate_via_basicauth, JsonWebTokenClaims, AUTH_COOKIE_NAME};
+use crate::{
+    auth::{authenticate, JsonWebTokenClaims, AUTH_COOKIE_NAME},
+    db::{
+        get_conn,
+        users::{get_user_data, GetUserDataInput},
+    },
+};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
+use serde::Deserialize;
+use sqlite::State;
 use std::env;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::{cookie::SameSite::Strict, Cookie, Cookies};
+use tracing::info;
 
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/auth/check", get(check_login))
         .route("/users/self", get(check_login))
-        .route("/auth/login", get(login))
+        .route("/auth/login", post(login))
         .route("/auth/clear", get(clear_auth))
 }
 
@@ -38,10 +48,46 @@ async fn clear_auth(cookies: Cookies) -> Response {
     StatusCode::OK.into_response()
 }
 
-async fn login(headers: HeaderMap, cookies: Cookies) -> Response {
-    let actor = match authenticate_via_basicauth(&headers) {
-        Ok(u) => u,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+#[derive(Deserialize)]
+struct UserLoginCredentials {
+    username: String,
+    password: String,
+}
+async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Response {
+    let hashstr: String = {
+        let conn = get_conn();
+        let q = "SELECT pass FROM users WHERE name = :name";
+        let mut statement = conn.prepare(q).unwrap();
+        statement.bind((":name", body.username.as_str())).unwrap();
+
+        match statement.next() {
+            Ok(State::Row) => statement.read("pass").unwrap(),
+            Ok(State::Done) => return "No such user in db".into_response(),
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        }
+    };
+    let argon = Argon2::default();
+    let hash = match PasswordHash::new(hashstr.as_str()) {
+        Ok(h) => h,
+        Err(e) => {
+            info!("Could not parse database PHC string as password hash: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Could not parse phc string from db",
+            )
+                .into_response();
+        }
+    };
+
+    let actor = match argon
+        .verify_password(body.password.as_bytes(), &hash)
+        .is_ok()
+    {
+        true => match get_user_data(GetUserDataInput::Name(body.username)) {
+            Ok(actor) => actor,
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        },
+        false => return (StatusCode::UNAUTHORIZED, "bad password").into_response(),
     };
 
     let claims = JsonWebTokenClaims {
@@ -63,6 +109,7 @@ async fn login(headers: HeaderMap, cookies: Cookies) -> Response {
         .max_age(tower_cookies::cookie::time::Duration::weeks(2))
         .http_only(true)
         .path("/")
+        .same_site(Strict)
         // .secure(true)
         .build();
 

@@ -19,14 +19,15 @@ export default function LoginPage() {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const sendloginrequest = async () => {
-    const head = new Headers();
-    head.append(
-      "Authorization",
-      `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
-    );
     const res = await fetch("http://localhost:2019/auth/login", {
-      headers: head,
-      cache: "no-cache",
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
       credentials: "include",
     });
     if (res.ok) {

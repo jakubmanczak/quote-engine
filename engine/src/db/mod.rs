@@ -1,5 +1,5 @@
+use crate::oldlogs::LogEvent;
 use chrono::Utc;
-use log_events::LogEvents;
 use sqlite::{Connection, State};
 use std::env;
 use tracing::{error, info, trace};
@@ -8,7 +8,6 @@ use ulid::Ulid;
 mod create_default_admin;
 mod tables;
 
-pub mod log_events;
 pub mod users;
 
 pub fn get_conn() -> Connection {
@@ -32,8 +31,10 @@ pub fn get_conn() -> Connection {
     }
 }
 
-pub fn push_log(event: LogEvents) {
-    let string = LogEvents::get_string(event);
+pub fn push_log(event: LogEvent) {
+    todo!();
+    // TODO: update to new log structure
+    let string = LogEvent::get_string(event);
     let ulid = Ulid::new().to_string();
     let timestamp = Utc::now().timestamp();
     info!("{}", string);

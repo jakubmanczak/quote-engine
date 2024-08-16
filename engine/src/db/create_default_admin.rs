@@ -1,6 +1,6 @@
 use super::get_conn;
-use crate::db::log_events::LogEvents::UserCreatedBySystem;
 use crate::models::DEFAULT_COLOR;
+use crate::oldlogs::LogEvent::UserCreatedBySystem;
 use crate::permissions::UserPermission;
 use crate::{db::push_log, models::User};
 use argon2::{

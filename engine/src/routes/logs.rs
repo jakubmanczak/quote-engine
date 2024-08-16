@@ -42,17 +42,18 @@ async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Co
 
         loop {
             match statement.next() {
-                Ok(State::Row) => logs.push(Log {
-                    id: statement.read("id").unwrap(),
-                    timestamp: match u64::try_from(statement.read::<i64, _>("timestamp").unwrap()) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            let res = format!("Could not convert db i64 to timestamp u64: {e}");
-                            return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
-                        }
-                    },
-                    content: statement.read("content").unwrap(),
-                }),
+                // Ok(State::Row) => logs.push(Log {
+                //     id: statement.read("id").unwrap(),
+                //     timestamp: match u64::try_from(statement.read::<i64, _>("timestamp").unwrap()) {
+                //         Ok(v) => v,
+                //         Err(e) => {
+                //             let res = format!("Could not convert db i64 to timestamp u64: {e}");
+                //             return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
+                //         }
+                //     },
+                //     // content: statement.read("content").unwrap(),
+                // }),
+                Ok(State::Row) => (),
                 Ok(State::Done) => match logs.is_empty() {
                     true => {
                         return (StatusCode::NOT_FOUND, "No logs found for query.").into_response()

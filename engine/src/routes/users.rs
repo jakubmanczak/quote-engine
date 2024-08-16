@@ -1,15 +1,14 @@
 use crate::{
     auth::authenticate,
     db::{
-        get_conn,
-        log_events::{
-            LogEvents::{UserCreated, UserDeleted, UserMutated},
-            LogUserInfo, LogUserMutatedInfo, UserMutation,
-        },
-        push_log,
+        get_conn, push_log,
         users::{get_user_data, GetUserDataInput},
     },
     models::{User, DEFAULT_COLOR, DEFAULT_PICTURE},
+    oldlogs::{
+        LogEvent::{UserCreated, UserDeleted, UserMutated},
+        LogUserInfo, LogUserMutatedInfo, UserMutation,
+    },
     permissions::{UserPermission, DEFAULT_PERMISSIONS},
 };
 use argon2::{
@@ -215,10 +214,10 @@ async fn post_users(
         }
     }
 
-    push_log(UserCreated(LogUserInfo {
-        actor,
-        subject: subject.clone(),
-    }));
+    // push_log(UserCreated(LogUserInfo {
+    //     actor,
+    //     subject: subject.clone(),
+    // }));
     return Json(subject).into_response();
 }
 
@@ -315,16 +314,16 @@ async fn patch_user(
         }
     }
 
-    push_log(UserMutated(LogUserMutatedInfo {
-        actor,
-        subject,
-        patched: UserMutation {
-            name: body.name,
-            color: body.color,
-            picture: body.picture,
-            perms: body.perms,
-        },
-    }));
+    // push_log(UserMutated(LogUserMutatedInfo {
+    //     actor,
+    //     subject,
+    //     patched: UserMutation {
+    //         name: body.name,
+    //         color: body.color,
+    //         picture: body.picture,
+    //         perms: body.perms,
+    //     },
+    // }));
     return StatusCode::OK.into_response();
 }
 
@@ -420,6 +419,6 @@ async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String
         }
     }
 
-    push_log(UserDeleted(LogUserInfo { actor, subject }));
+    // push_log(UserDeleted(LogUserInfo { actor, subject }));
     return StatusCode::NO_CONTENT.into_response();
 }

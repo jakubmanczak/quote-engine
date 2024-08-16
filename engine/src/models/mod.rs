@@ -1,4 +1,4 @@
-use crate::permissions::UserPermission;
+use crate::{oldlogs::LogEvent, permissions::UserPermission};
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
 
@@ -12,13 +12,6 @@ pub struct User {
     pub color: String,
     pub picture: String,
     pub perms: Vec<UserPermission>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Log {
-    pub id: String,
-    pub timestamp: u64,
-    pub content: String,
 }
 
 #[derive(Debug)]

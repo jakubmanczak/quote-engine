@@ -1,12 +1,13 @@
 use super::get_conn;
+use crate::logs::{push_log, LogEntry};
+use crate::models::User;
 use crate::models::DEFAULT_COLOR;
-use crate::oldlogs::LogEvent::UserCreatedBySystem;
 use crate::permissions::UserPermission;
-use crate::{db::push_log, models::User};
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHasher,
 };
+use chrono::Utc;
 use tracing::{error, info};
 use ulid::Ulid;
 
@@ -63,5 +64,11 @@ pub fn run() {
 
     info!("{}", DEFAULT_ADMIN_CREATED);
     info!("{}", REMOVE_DEFAULT_ADMIN);
-    push_log(UserCreatedBySystem(user));
+    push_log(LogEntry {
+        id: Ulid::new().to_string(),
+        timestamp: Utc::now().timestamp(),
+        actor: Ulid::nil().to_string(),
+        subject: user.id.clone(),
+        action: crate::logs::LogEvent::UserCreatedBySystem(user),
+    });
 }

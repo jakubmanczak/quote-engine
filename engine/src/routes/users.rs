@@ -1,14 +1,11 @@
 use crate::{
     auth::authenticate,
     db::{
-        get_conn, push_log,
+        get_conn,
         users::{get_user_data, GetUserDataInput},
     },
+    logs::{push_log, LogEntry, LogEvent},
     models::{User, DEFAULT_COLOR, DEFAULT_PICTURE},
-    oldlogs::{
-        LogEvent::{UserCreated, UserDeleted, UserMutated},
-        LogUserInfo, LogUserMutatedInfo, UserMutation,
-    },
     permissions::{UserPermission, DEFAULT_PERMISSIONS},
 };
 use argon2::{
@@ -22,6 +19,7 @@ use axum::{
     routing::{delete, get, patch, post},
     Json, Router,
 };
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlite::State;
 use tower_cookies::Cookies;
@@ -214,10 +212,13 @@ async fn post_users(
         }
     }
 
-    // push_log(UserCreated(LogUserInfo {
-    //     actor,
-    //     subject: subject.clone(),
-    // }));
+    push_log(LogEntry {
+        id: Ulid::new().to_string(),
+        timestamp: Utc::now().timestamp(),
+        actor: actor.id,
+        subject: subject.id.clone(),
+        action: LogEvent::UserCreated(subject.clone()),
+    });
     return Json(subject).into_response();
 }
 
@@ -314,16 +315,54 @@ async fn patch_user(
         }
     }
 
-    // push_log(UserMutated(LogUserMutatedInfo {
-    //     actor,
-    //     subject,
-    //     patched: UserMutation {
-    //         name: body.name,
-    //         color: body.color,
-    //         picture: body.picture,
-    //         perms: body.perms,
-    //     },
-    // }));
+    if let Some(name) = body.name {
+        push_log(LogEntry {
+            id: Ulid::new().to_string(),
+            timestamp: Utc::now().timestamp(),
+            actor: actor.id.clone(),
+            subject: subject.id.clone(),
+            action: LogEvent::UserNameUpdated {
+                old_name: subject.name.clone(),
+                new_name: name,
+            },
+        });
+    }
+    if let Some(color) = body.color {
+        push_log(LogEntry {
+            id: Ulid::new().to_string(),
+            timestamp: Utc::now().timestamp(),
+            actor: actor.id.clone(),
+            subject: subject.id.clone(),
+            action: LogEvent::UserColorUpdated {
+                old_color: subject.color.clone(),
+                new_color: color,
+            },
+        });
+    }
+    if let Some(picture) = body.picture {
+        push_log(LogEntry {
+            id: Ulid::new().to_string(),
+            timestamp: Utc::now().timestamp(),
+            actor: actor.id.clone(),
+            subject: subject.id.clone(),
+            action: LogEvent::UserPictureUpdated {
+                old_picture: subject.picture.clone(),
+                new_picture: picture,
+            },
+        });
+    }
+    if let Some(perms) = body.perms {
+        push_log(LogEntry {
+            id: Ulid::new().to_string(),
+            timestamp: Utc::now().timestamp(),
+            actor: actor.id.clone(),
+            subject: subject.id.clone(),
+            action: LogEvent::UserPermissionsUpdated {
+                old_perms: subject.perms.clone(),
+                new_perms: perms,
+            },
+        });
+    }
     return StatusCode::OK.into_response();
 }
 
@@ -382,6 +421,13 @@ async fn patch_user_password(
         }
     }
 
+    push_log(LogEntry {
+        id: Ulid::new().to_string(),
+        timestamp: Utc::now().timestamp(),
+        actor: actor.id.clone(),
+        subject: id.clone(),
+        action: LogEvent::UserPasswordUpdated,
+    });
     (StatusCode::OK, "Password changed.").into_response()
 }
 
@@ -419,6 +465,12 @@ async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String
         }
     }
 
-    // push_log(UserDeleted(LogUserInfo { actor, subject }));
+    push_log(LogEntry {
+        id: Ulid::new().to_string(),
+        timestamp: Utc::now().timestamp(),
+        actor: actor.id,
+        subject: subject.id.clone(),
+        action: LogEvent::UserDeleted(subject),
+    });
     return StatusCode::NO_CONTENT.into_response();
 }

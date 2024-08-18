@@ -1,7 +1,7 @@
+use std::os::macos::raw::stat;
+
 use crate::{
-    auth::authenticate,
-    db::get_conn,
-    models::{Log, Pagination},
+    auth::authenticate, db::get_conn, logs::LogEntry, models::Pagination,
     permissions::UserPermission,
 };
 use axum::{
@@ -30,7 +30,7 @@ async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Co
         false => return StatusCode::FORBIDDEN.into_response(),
     }
 
-    let mut logs: Vec<Log> = Vec::new();
+    let mut logs: Vec<LogEntry> = Vec::new();
     let limit = i64::from(u32::from(p.limit));
     let offset = i64::from(u32::from(p.limit) * (u32::from(p.page) - 1));
     let q = "SELECT * FROM logs ORDER BY id DESC LIMIT :limit OFFSET :offset";
@@ -42,18 +42,16 @@ async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Co
 
         loop {
             match statement.next() {
-                // Ok(State::Row) => logs.push(Log {
-                //     id: statement.read("id").unwrap(),
-                //     timestamp: match u64::try_from(statement.read::<i64, _>("timestamp").unwrap()) {
-                //         Ok(v) => v,
-                //         Err(e) => {
-                //             let res = format!("Could not convert db i64 to timestamp u64: {e}");
-                //             return (StatusCode::INTERNAL_SERVER_ERROR, res).into_response();
-                //         }
-                //     },
-                //     // content: statement.read("content").unwrap(),
-                // }),
-                Ok(State::Row) => (),
+                Ok(State::Row) => {
+                    let details: String = statement.read("details").unwrap();
+                    logs.push(LogEntry {
+                        id: statement.read("id").unwrap(),
+                        timestamp: statement.read("timestamp").unwrap(),
+                        actor: statement.read("actor").unwrap(),
+                        subject: statement.read("subject").unwrap(),
+                        action: serde_json::from_str(details.as_str()).unwrap(),
+                    });
+                }
                 Ok(State::Done) => match logs.is_empty() {
                     true => {
                         return (StatusCode::NOT_FOUND, "No logs found for query.").into_response()

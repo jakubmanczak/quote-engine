@@ -1,9 +1,6 @@
-use crate::oldlogs::LogEvent;
-use chrono::Utc;
 use sqlite::{Connection, State};
 use std::env;
-use tracing::{error, info, trace};
-use ulid::Ulid;
+use tracing::{error, trace};
 
 mod create_default_admin;
 mod tables;
@@ -28,27 +25,6 @@ pub fn get_conn() -> Connection {
             error!("error establishing sqlite db conn: {e}");
             panic!();
         }
-    }
-}
-
-pub fn push_log(event: LogEvent) {
-    todo!();
-    // TODO: update to new log structure
-    let string = LogEvent::get_string(event);
-    let ulid = Ulid::new().to_string();
-    let timestamp = Utc::now().timestamp();
-    info!("{}", string);
-
-    let conn = get_conn();
-    let q = "INSERT INTO logs VALUES (:id, :timestamp, :content)";
-    let mut statement = conn.prepare(q).unwrap();
-    statement.bind((":id", ulid.as_str())).unwrap();
-    statement.bind((":timestamp", timestamp)).unwrap();
-    statement.bind((":content", string.as_str())).unwrap();
-
-    match statement.next() {
-        Ok(_) => (),
-        Err(e) => error!("Could not push log to database: {e}"),
     }
 }
 

@@ -16,7 +16,10 @@ pub static LOGS: &str = "
     CREATE TABLE IF NOT EXISTS logs (
         id          TEXT NOT NULL UNIQUE PRIMARY KEY,
         timestamp   INTEGER,
-        content     TEXT NOT NULL
+        actor       TEXT,
+        subject     TEXT,
+        action      TEXT,
+        details     TEXT
     )
 ";
 

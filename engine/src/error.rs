@@ -6,11 +6,13 @@ pub enum Error {
     // quotes-engine specific
     RequestAuthError(String),
     GetUserDataError(String),
+    LogVariantSerializeError(String),
 
     // imported
     DecodeError(base64::DecodeError),
     FromUtf8Error(FromUtf8Error),
     JsonWebTokenError(jsonwebtoken::errors::Error),
+    SerdeJsonError(serde_json::Error),
 
     // SQLite
     SqliteError(sqlite::Error),
@@ -22,10 +24,12 @@ impl Display for Error {
         match self {
             Error::RequestAuthError(err) => write!(f, "RequestAuthError: {}", err),
             Error::GetUserDataError(err) => write!(f, "GetUserDataError: {}", err),
+            Error::LogVariantSerializeError(err) => write!(f, "LogVariantSerializeError: {}", err),
             //
             Error::DecodeError(err) => write!(f, "{}", err),
             Error::FromUtf8Error(err) => write!(f, "{}", err),
             Error::JsonWebTokenError(err) => write!(f, "{}", err),
+            Error::SerdeJsonError(err) => write!(f, "{}", err),
             //
             Error::SqliteError(err) => write!(f, "{}", err),
             Error::NoRowsError(err) => write!(f, "NoRowsError: {}", err),
@@ -48,6 +52,12 @@ impl From<FromUtf8Error> for Error {
 impl From<jsonwebtoken::errors::Error> for Error {
     fn from(err: jsonwebtoken::errors::Error) -> Error {
         Error::JsonWebTokenError(err)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Error {
+        Error::SerdeJsonError(err)
     }
 }
 

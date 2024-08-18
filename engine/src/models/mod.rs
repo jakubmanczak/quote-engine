@@ -1,4 +1,4 @@
-use crate::{oldlogs::LogEvent, permissions::UserPermission};
+use crate::permissions::UserPermission;
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
 

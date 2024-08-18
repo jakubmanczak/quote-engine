@@ -1,5 +1,3 @@
-use std::os::macos::raw::stat;
-
 use crate::{
     auth::authenticate, db::get_conn, logs::LogEntry, models::Pagination,
     permissions::UserPermission,

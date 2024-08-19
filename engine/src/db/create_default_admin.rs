@@ -21,7 +21,7 @@ pub fn run() {
         id: ulid,
         name: "admin".to_owned(),
         color: DEFAULT_COLOR.to_owned(),
-        picture: "-".to_owned(),
+        picture: String::new(),
         perms: vec![UserPermission::Everything],
     };
 

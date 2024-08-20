@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
 
 pub const DEFAULT_COLOR: &str = "28166f";
-pub const DEFAULT_PICTURE: &str = "https://placewaifu.com/image/64";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {

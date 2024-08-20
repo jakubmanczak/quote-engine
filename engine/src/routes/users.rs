@@ -5,7 +5,7 @@ use crate::{
         users::{get_user_data, GetUserDataInput},
     },
     logs::{push_log, LogEntry, LogEvent},
-    models::{User, DEFAULT_COLOR, DEFAULT_PICTURE},
+    models::{User, DEFAULT_COLOR},
     permissions::{UserPermission, DEFAULT_PERMISSIONS},
 };
 use argon2::{
@@ -187,7 +187,7 @@ async fn post_users(
             },
             picture: match body.picture {
                 Some(p) => p,
-                None => DEFAULT_PICTURE.to_owned(),
+                None => String::new(),
             },
             perms: Vec::from(DEFAULT_PERMISSIONS),
         };

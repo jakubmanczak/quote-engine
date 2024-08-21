@@ -1,8 +1,6 @@
 use core::fmt;
 use std::{fmt::Display, string::FromUtf8Error};
 
-use ulid::DecodeError;
-
 #[derive(Debug)]
 pub enum Error {
     // quotes-engine specific

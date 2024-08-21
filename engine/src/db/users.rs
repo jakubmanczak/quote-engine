@@ -3,6 +3,7 @@ use crate::models::User;
 use crate::{error::Error, permissions::UserPermission};
 use sqlite::{State, Statement};
 use tracing::error;
+use ulid::Ulid;
 
 #[derive(Debug, Clone)]
 pub enum GetUserDataInput {
@@ -29,7 +30,7 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
     match st.next() {
         Ok(State::Row) => {
             return Ok(User {
-                id: st.read("id").unwrap(),
+                id: Ulid::from_string(st.read::<String, _>("id").unwrap().as_str())?,
                 name: st.read("name").unwrap(),
                 color: st.read("color").unwrap(),
                 picture: st.read("picture").unwrap(),

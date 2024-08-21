@@ -1,12 +1,13 @@
 use crate::permissions::UserPermission;
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
+use ulid::Ulid;
 
 pub const DEFAULT_COLOR: &str = "28166f";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
-    pub id: String,
+    pub id: Ulid,
     pub name: String,
     pub color: String,
     pub picture: String,
@@ -15,7 +16,7 @@ pub struct User {
 
 #[derive(Debug)]
 pub struct Quote {
-    pub id: String,
+    pub id: Ulid,
     pub context: String,
     pub timestamp: u64,
     // assembled from db
@@ -25,7 +26,7 @@ pub struct Quote {
 
 #[derive(Debug)]
 pub struct Line {
-    pub id: String,
+    pub id: Ulid,
     pub content: String,
     pub position: u8,
     pub quote: String,
@@ -34,7 +35,7 @@ pub struct Line {
 
 #[derive(Debug)]
 pub struct Author {
-    pub id: String,
+    pub id: Ulid,
     pub name: String,
     pub obfname: String,
 }

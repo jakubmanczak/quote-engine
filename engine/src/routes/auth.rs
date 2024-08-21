@@ -96,7 +96,7 @@ async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Resp
     let claims = JsonWebTokenClaims {
         exp: (Utc::now() + Duration::weeks(2)).timestamp(),
         iat: Utc::now().timestamp(),
-        sub: actor.id,
+        sub: actor.id.to_string(),
     };
 
     let token = match encode(

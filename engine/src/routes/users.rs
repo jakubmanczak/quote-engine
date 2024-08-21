@@ -53,7 +53,7 @@ async fn get_users(headers: HeaderMap, cookies: Cookies) -> Response {
     loop {
         match statement.next() {
             Ok(State::Row) => users.push(User {
-                id: statement.read("id").unwrap(),
+                id: Ulid::from_string(statement.read::<String, _>("id").unwrap().as_str()).unwrap(),
                 name: statement.read("name").unwrap(),
                 color: statement.read("color").unwrap(),
                 picture: statement.read("picture").unwrap(),
@@ -93,7 +93,7 @@ async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<Str
     match statement.next() {
         Ok(State::Row) => {
             return Json(User {
-                id: statement.read("id").unwrap(),
+                id: Ulid::from_string(statement.read::<String, _>("id").unwrap().as_str()).unwrap(),
                 name: statement.read("name").unwrap(),
                 color: statement.read("color").unwrap(),
                 picture: statement.read("picture").unwrap(),
@@ -163,7 +163,6 @@ async fn post_users(
 
     let subject: User;
     {
-        let ulid = Ulid::new().to_string();
         let conn = get_conn();
         let query = "INSERT INTO users VALUES (:id, :name, :pass, :perms, :color, :pic)";
         let mut st = conn.prepare(query).unwrap();
@@ -179,7 +178,7 @@ async fn post_users(
         };
 
         subject = User {
-            id: ulid,
+            id: Ulid::new(),
             name: body.name,
             color: match body.color {
                 Some(c) => c,
@@ -192,7 +191,7 @@ async fn post_users(
             perms: Vec::from(DEFAULT_PERMISSIONS),
         };
 
-        st.bind((":id", subject.id.as_str())).unwrap();
+        st.bind((":id", subject.id.to_string().as_str())).unwrap();
         st.bind((":name", subject.name.as_str())).unwrap();
         st.bind((":pass", hash.as_str())).unwrap();
         st.bind((
@@ -215,8 +214,8 @@ async fn post_users(
     push_log(LogEntry {
         id: Ulid::new().to_string(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id,
-        subject: subject.id.clone(),
+        actor: actor.id.to_string(),
+        subject: subject.id.to_string(),
         action: LogEvent::UserCreated(subject.clone()),
     });
     return Json(subject).into_response();
@@ -248,6 +247,17 @@ async fn patch_user(
             }
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
         },
+    };
+
+    let id = match Ulid::from_string(id.as_str()) {
+        Ok(id) => id,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                format!("Id is not valid ulid: {e}"),
+            )
+                .into_response();
+        }
     };
 
     let mut checkperms: Vec<UserPermission> = Vec::new();
@@ -300,7 +310,7 @@ async fn patch_user(
     {
         let conn = get_conn();
         let mut st = conn.prepare(q).unwrap();
-        st.bind((":id", id.as_str())).unwrap();
+        st.bind((":id", id.to_string().as_str())).unwrap();
         st.bind((":n", name.as_str())).unwrap();
         st.bind((":c", color.as_str())).unwrap();
         st.bind((":pic", picture.as_str())).unwrap();
@@ -319,8 +329,8 @@ async fn patch_user(
         push_log(LogEntry {
             id: Ulid::new().to_string(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.clone(),
-            subject: subject.id.clone(),
+            actor: actor.id.to_string(),
+            subject: subject.id.to_string(),
             action: LogEvent::UserNameUpdated {
                 old_name: subject.name.clone(),
                 new_name: name,
@@ -331,8 +341,8 @@ async fn patch_user(
         push_log(LogEntry {
             id: Ulid::new().to_string(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.clone(),
-            subject: subject.id.clone(),
+            actor: actor.id.to_string(),
+            subject: subject.id.to_string(),
             action: LogEvent::UserColorUpdated {
                 old_color: subject.color.clone(),
                 new_color: color,
@@ -343,8 +353,8 @@ async fn patch_user(
         push_log(LogEntry {
             id: Ulid::new().to_string(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.clone(),
-            subject: subject.id.clone(),
+            actor: actor.id.to_string(),
+            subject: subject.id.to_string(),
             action: LogEvent::UserPictureUpdated {
                 old_picture: subject.picture.clone(),
                 new_picture: picture,
@@ -355,8 +365,8 @@ async fn patch_user(
         push_log(LogEntry {
             id: Ulid::new().to_string(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.clone(),
-            subject: subject.id.clone(),
+            actor: actor.id.to_string(),
+            subject: subject.id.to_string(),
             action: LogEvent::UserPermissionsUpdated {
                 old_perms: subject.perms.clone(),
                 new_perms: perms,
@@ -379,6 +389,17 @@ async fn patch_user_password(
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    };
+
+    let id = match Ulid::from_string(id.as_str()) {
+        Ok(id) => id,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                format!("Id is not valid ulid: {e}"),
+            )
+                .into_response();
+        }
     };
 
     {
@@ -409,7 +430,7 @@ async fn patch_user_password(
         let conn = get_conn();
         let q = "UPDATE users SET pass = :p WHERE id = :id";
         let mut statement = conn.prepare(q).unwrap();
-        statement.bind((":id", id.as_str())).unwrap();
+        statement.bind((":id", id.to_string().as_str())).unwrap();
         statement.bind((":p", hash.as_str())).unwrap();
 
         match statement.next() {
@@ -424,8 +445,8 @@ async fn patch_user_password(
     push_log(LogEntry {
         id: Ulid::new().to_string(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id.clone(),
-        subject: id.clone(),
+        actor: actor.id.to_string(),
+        subject: id.to_string(),
         action: LogEvent::UserPasswordUpdated,
     });
     (StatusCode::OK, "Password changed.").into_response()
@@ -442,7 +463,7 @@ async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String
         false => return StatusCode::FORBIDDEN.into_response(),
     }
 
-    let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
+    let subject = match get_user_data(GetUserDataInput::Id(id.to_string())) {
         Ok(user) => user,
         Err(e) => {
             error!("{e}");
@@ -468,8 +489,8 @@ async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String
     push_log(LogEntry {
         id: Ulid::new().to_string(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id,
-        subject: subject.id.clone(),
+        actor: actor.id.to_string(),
+        subject: subject.id.to_string(),
         action: LogEvent::UserDeleted(subject),
     });
     return StatusCode::NO_CONTENT.into_response();

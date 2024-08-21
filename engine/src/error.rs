@@ -1,6 +1,8 @@
 use core::fmt;
 use std::{fmt::Display, string::FromUtf8Error};
 
+use ulid::DecodeError;
+
 #[derive(Debug)]
 pub enum Error {
     // quotes-engine specific
@@ -13,6 +15,7 @@ pub enum Error {
     FromUtf8Error(FromUtf8Error),
     JsonWebTokenError(jsonwebtoken::errors::Error),
     SerdeJsonError(serde_json::Error),
+    UlidDecodeError(ulid::DecodeError),
 
     // SQLite
     SqliteError(sqlite::Error),
@@ -30,6 +33,7 @@ impl Display for Error {
             Error::FromUtf8Error(err) => write!(f, "{}", err),
             Error::JsonWebTokenError(err) => write!(f, "{}", err),
             Error::SerdeJsonError(err) => write!(f, "{}", err),
+            Error::UlidDecodeError(err) => write!(f, "{}", err),
             //
             Error::SqliteError(err) => write!(f, "{}", err),
             Error::NoRowsError(err) => write!(f, "NoRowsError: {}", err),
@@ -58,6 +62,12 @@ impl From<jsonwebtoken::errors::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
         Error::SerdeJsonError(err)
+    }
+}
+
+impl From<ulid::DecodeError> for Error {
+    fn from(err: ulid::DecodeError) -> Error {
+        Error::UlidDecodeError(err)
     }
 }
 

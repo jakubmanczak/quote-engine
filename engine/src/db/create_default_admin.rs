@@ -16,9 +16,8 @@ const REMOVE_DEFAULT_ADMIN: &str = "Please change the password or swap this acco
 
 pub fn run() {
     let conn = get_conn();
-    let ulid = Ulid::new().to_string();
     let user = User {
-        id: ulid,
+        id: Ulid::new(),
         name: "admin".to_owned(),
         color: DEFAULT_COLOR.to_owned(),
         picture: String::new(),
@@ -41,7 +40,9 @@ pub fn run() {
             }
         };
 
-        statement.bind((":id", user.id.as_str())).unwrap();
+        statement
+            .bind((":id", user.id.to_string().as_str()))
+            .unwrap();
         statement.bind((":name", user.name.as_str())).unwrap();
         statement.bind((":pass", hash.as_str())).unwrap();
         statement.bind((":color", user.color.as_str())).unwrap();
@@ -68,7 +69,7 @@ pub fn run() {
         id: Ulid::new().to_string(),
         timestamp: Utc::now().timestamp(),
         actor: Ulid::nil().to_string(),
-        subject: user.id.clone(),
+        subject: user.id.to_string(),
         action: crate::logs::LogEvent::UserCreatedBySystem(user),
     });
 }

@@ -12,6 +12,7 @@ use axum::{
 use sqlite::State;
 use tower_cookies::Cookies;
 use tracing::error;
+use ulid::Ulid;
 
 pub fn exported_routes() -> Router {
     Router::new().route("/logs", get(logs_route))
@@ -43,10 +44,17 @@ async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Co
                 Ok(State::Row) => {
                     let details: String = statement.read("details").unwrap();
                     logs.push(LogEntry {
-                        id: statement.read("id").unwrap(),
+                        id: Ulid::from_string(statement.read::<String, _>("id").unwrap().as_str())
+                            .unwrap(),
                         timestamp: statement.read("timestamp").unwrap(),
-                        actor: statement.read("actor").unwrap(),
-                        subject: statement.read("subject").unwrap(),
+                        actor: Ulid::from_string(
+                            statement.read::<String, _>("actor").unwrap().as_str(),
+                        )
+                        .unwrap(),
+                        subject: Ulid::from_string(
+                            statement.read::<String, _>("subject").unwrap().as_str(),
+                        )
+                        .unwrap(),
                         action: serde_json::from_str(details.as_str()).unwrap(),
                     });
                 }

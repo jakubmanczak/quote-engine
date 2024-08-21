@@ -212,10 +212,10 @@ async fn post_users(
     }
 
     push_log(LogEntry {
-        id: Ulid::new().to_string(),
+        id: Ulid::new(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id.to_string(),
-        subject: subject.id.to_string(),
+        actor: actor.id,
+        subject: subject.id,
         action: LogEvent::UserCreated(subject.clone()),
     });
     return Json(subject).into_response();
@@ -327,10 +327,10 @@ async fn patch_user(
 
     if let Some(name) = body.name {
         push_log(LogEntry {
-            id: Ulid::new().to_string(),
+            id: Ulid::new(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.to_string(),
-            subject: subject.id.to_string(),
+            actor: actor.id,
+            subject: subject.id,
             action: LogEvent::UserNameUpdated {
                 old_name: subject.name.clone(),
                 new_name: name,
@@ -339,10 +339,10 @@ async fn patch_user(
     }
     if let Some(color) = body.color {
         push_log(LogEntry {
-            id: Ulid::new().to_string(),
+            id: Ulid::new(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.to_string(),
-            subject: subject.id.to_string(),
+            actor: actor.id,
+            subject: subject.id,
             action: LogEvent::UserColorUpdated {
                 old_color: subject.color.clone(),
                 new_color: color,
@@ -351,10 +351,10 @@ async fn patch_user(
     }
     if let Some(picture) = body.picture {
         push_log(LogEntry {
-            id: Ulid::new().to_string(),
+            id: Ulid::new(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.to_string(),
-            subject: subject.id.to_string(),
+            actor: actor.id,
+            subject: subject.id,
             action: LogEvent::UserPictureUpdated {
                 old_picture: subject.picture.clone(),
                 new_picture: picture,
@@ -363,10 +363,10 @@ async fn patch_user(
     }
     if let Some(perms) = body.perms {
         push_log(LogEntry {
-            id: Ulid::new().to_string(),
+            id: Ulid::new(),
             timestamp: Utc::now().timestamp(),
-            actor: actor.id.to_string(),
-            subject: subject.id.to_string(),
+            actor: actor.id,
+            subject: subject.id,
             action: LogEvent::UserPermissionsUpdated {
                 old_perms: subject.perms.clone(),
                 new_perms: perms,
@@ -443,10 +443,10 @@ async fn patch_user_password(
     }
 
     push_log(LogEntry {
-        id: Ulid::new().to_string(),
+        id: Ulid::new(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id.to_string(),
-        subject: id.to_string(),
+        actor: actor.id,
+        subject: id,
         action: LogEvent::UserPasswordUpdated,
     });
     (StatusCode::OK, "Password changed.").into_response()
@@ -487,10 +487,10 @@ async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String
     }
 
     push_log(LogEntry {
-        id: Ulid::new().to_string(),
+        id: Ulid::new(),
         timestamp: Utc::now().timestamp(),
-        actor: actor.id.to_string(),
-        subject: subject.id.to_string(),
+        actor: actor.id,
+        subject: subject.id,
         action: LogEvent::UserDeleted(subject),
     });
     return StatusCode::NO_CONTENT.into_response();

@@ -1,13 +1,14 @@
 use crate::{db::get_conn, error::Error, models::User, permissions::UserPermission};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
+use ulid::Ulid;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LogEntry {
-    pub id: String,
+    pub id: Ulid,
     pub timestamp: i64,
-    pub actor: String,
-    pub subject: String,
+    pub actor: Ulid,
+    pub subject: Ulid,
     pub action: LogEvent,
 }
 
@@ -93,10 +94,12 @@ pub fn push_log(event: LogEntry) {
     let conn = get_conn();
     let q = "INSERT INTO logs VALUES (:id, :timestamp, :actor, :subject, :action, :details)";
     let mut st = conn.prepare(q).unwrap();
-    st.bind((":id", event.id.as_str())).unwrap();
+    st.bind((":id", event.id.to_string().as_str())).unwrap();
     st.bind((":timestamp", event.timestamp)).unwrap();
-    st.bind((":actor", event.actor.as_str())).unwrap();
-    st.bind((":subject", event.subject.as_str())).unwrap();
+    st.bind((":actor", event.actor.to_string().as_str()))
+        .unwrap();
+    st.bind((":subject", event.subject.to_string().as_str()))
+        .unwrap();
     st.bind((":action", action.as_str())).unwrap();
     st.bind((":details", details.as_str())).unwrap();
 

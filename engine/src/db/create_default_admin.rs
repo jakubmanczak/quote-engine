@@ -66,10 +66,10 @@ pub fn run() {
     info!("{}", DEFAULT_ADMIN_CREATED);
     info!("{}", REMOVE_DEFAULT_ADMIN);
     push_log(LogEntry {
-        id: Ulid::new().to_string(),
+        id: Ulid::new(),
         timestamp: Utc::now().timestamp(),
-        actor: Ulid::nil().to_string(),
-        subject: user.id.to_string(),
+        actor: Ulid::nil(),
+        subject: user.id,
         action: crate::logs::LogEvent::UserCreatedBySystem(user),
     });
 }

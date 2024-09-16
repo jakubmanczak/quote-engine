@@ -4,7 +4,7 @@ const qfetch = async (
 ) => {
   const input =
     process.env.NODE_ENV === "production"
-      ? `${process.env.NEXT_PUBLIC_SERVER_PATH}${path}`
+      ? `${process.env.NEXT_PUBLIC_SERVER_PATH || "/api"}${path}`
       : `http://localhost:2019${path}`;
   return fetch(input, {
     credentials: "include",

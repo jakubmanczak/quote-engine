@@ -11,9 +11,12 @@ pub enum UserPermission {
     MutateUsersPermissions,
     MutateUsersPasswords,
     InspectLogs,
+
+    // OTHER ENTITLEMENTS
+    DisplayFlower,
 }
 
-pub const USER_PERMISSIONS: [UserPermission; 8] = [
+pub const USER_PERMISSIONS: [UserPermission; 9] = [
     Everything,
     MutateOwnUser,
     CreateUsers,
@@ -22,6 +25,7 @@ pub const USER_PERMISSIONS: [UserPermission; 8] = [
     MutateUsersPermissions,
     MutateUsersPasswords,
     InspectLogs,
+    DisplayFlower,
 ];
 
 pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
@@ -60,6 +64,7 @@ impl UserPermission {
             MutateUsersPermissions => 0b1 << 5,
             MutateUsersPasswords => 0b1 << 6,
             InspectLogs => 0b1 << 7,
+            DisplayFlower => 0b1 << 8,
         }
     }
 }

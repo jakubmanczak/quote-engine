@@ -5,7 +5,7 @@ import { DialogDrawer } from "@/components/DialogDrawer";
 import { Card } from "@/components/ui/card";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
-import { LucideShieldCheck, LucideUser } from "lucide-react";
+import { LucideFlower, LucideShieldCheck, LucideUser } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function UsersPage() {
@@ -81,6 +81,7 @@ export default function UsersPage() {
                   </h3>
                   <div className="absolute top-0 right-0 flex flex-row items-center gap-1 text-muted-foreground">
                     {user.perms.includes("Everything") && <LucideShieldCheck />}
+                    {user.perms.includes("DisplayFlower") && <LucideFlower />}
                     <div
                       className="block w-5 h-5 rounded-full"
                       style={{

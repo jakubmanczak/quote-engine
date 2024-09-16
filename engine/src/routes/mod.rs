@@ -3,6 +3,7 @@ use axum::{routing::get, Router};
 mod auth;
 mod logs;
 mod permissions;
+mod quotes;
 mod users;
 
 pub fn routes() -> Router {
@@ -14,6 +15,7 @@ pub fn routes() -> Router {
         .merge(permissions::exported_routes())
         .merge(logs::exported_routes())
         .merge(auth::exported_routes())
+        .merge(quotes::exported_routes())
 }
 
 // 200 OK

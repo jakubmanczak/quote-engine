@@ -1,3 +1,4 @@
+import { CardStat } from "@/components/CardStat";
 import { Dashboard } from "@/components/Dashboard";
 import { Card, CardTitle } from "@/components/ui/card";
 
@@ -20,7 +21,7 @@ export default function HomePage() {
               <CardTitle className="text-3xl font-bold font-sans">
                 {"..."}
               </CardTitle>
-              {"quotes in the database"}
+              {"quotes added this week"}
             </Card>
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
@@ -32,7 +33,21 @@ export default function HomePage() {
               <CardTitle className="text-3xl font-bold font-sans">
                 {"..."}
               </CardTitle>
-              {"quotes added today"}
+              {"users registered this week"}
+            </Card>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-4">
+            <Card className="p-4 flex-1 text-center">
+              <CardTitle className="text-3xl font-bold font-sans">
+                <CardStat variant="quoteCount" />
+              </CardTitle>
+              {"quotes in the database"}
+            </Card>
+            <Card className="p-4 flex-1 text-center">
+              <CardTitle className="text-3xl font-bold font-sans">
+                <CardStat variant="userCount" />
+              </CardTitle>
+              {"registered users"}
             </Card>
           </div>
         </div>

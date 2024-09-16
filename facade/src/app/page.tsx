@@ -18,7 +18,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row gap-4">
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
-                {"0"}
+                {"..."}
               </CardTitle>
               {"quotes in the database"}
             </Card>
@@ -30,23 +30,9 @@ export default function HomePage() {
             </Card>
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
-                {"0"}
+                {"..."}
               </CardTitle>
               {"quotes added today"}
-            </Card>
-          </div>
-          <div className="flex flex-col lg:flex-row gap-4">
-            <Card className="p-4 flex-1 text-center">
-              <CardTitle className="text-3xl font-bold font-sans">
-                {"ndst."}
-              </CardTitle>
-              {"ocena Jakuba Kleki z matematyki"}
-            </Card>
-            <Card className="p-4 flex-1 text-center">
-              <CardTitle className="text-3xl font-bold font-sans">
-                {"204% ↘"}
-              </CardTitle>
-              {"spadek akcji spółki CD Projekt wg. Rabendy"}
             </Card>
           </div>
         </div>

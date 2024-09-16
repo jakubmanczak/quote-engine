@@ -1,5 +1,7 @@
 "use client";
+import { CreateUser } from "@/components/CreateUser";
 import { Dashboard } from "@/components/Dashboard";
+import { DialogDrawer } from "@/components/DialogDrawer";
 import { Card } from "@/components/ui/card";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
@@ -8,6 +10,7 @@ import { useEffect, useState } from "react";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<user[]>([]);
+  const [user, setUser] = useState<user | null>(null);
   const [fetchStat, setFetchStat] = useState<{
     status: number;
     statusText: string;
@@ -26,12 +29,33 @@ export default function UsersPage() {
     const array: user[] = await res.json();
     setUsers(array);
   };
+  const getUser = async () => {
+    const res = await qfetch("/users/self");
+    if (!res.ok) return;
+    const resuser = await res.json();
+    setUser(resuser);
+  };
   useEffect(() => {
     getUsers();
+    getUser();
   }, []);
   return (
     <Dashboard>
-      {fetchStat?.status === 200 && <p className="text-xl">Users</p>}
+      {fetchStat?.status === 200 && (
+        <div className="flex flex-row gap-4 items-center">
+          <p className="text-xl">Users</p>
+          {user?.perms.includes("CreateUsers") ||
+            (user?.perms.includes("Everything") && (
+              <DialogDrawer
+                buttonText="Add new user"
+                contentTitle="Adding a new user"
+                contentDescr="Input their username and starting password here."
+              >
+                <CreateUser />
+              </DialogDrawer>
+            ))}
+        </div>
+      )}
       {fetchStat?.status === 200 && (
         <div className="flex flex-row flex-wrap gap-4 justify-center sm:justify-normal">
           {users.map((user) => {

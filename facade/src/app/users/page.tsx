@@ -2,10 +2,24 @@
 import { CreateUser } from "@/components/CreateUser";
 import { Dashboard } from "@/components/Dashboard";
 import { DialogDrawer } from "@/components/DialogDrawer";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
-import { LucideFlower, LucideShieldCheck, LucideUser } from "lucide-react";
+import {
+  FlowerIcon,
+  LucideFlower,
+  LucidePaintbrush,
+  LucideShieldCheck,
+  LucideUser,
+  LucideWrench,
+  ShieldCheckIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function UsersPage() {
@@ -58,36 +72,66 @@ export default function UsersPage() {
       )}
       {fetchStat?.status === 200 && (
         <div className="flex flex-row flex-wrap gap-4 justify-center sm:justify-normal">
-          {users.map((user) => {
+          {users.map((u) => {
             return (
               <Card
-                key={user.id}
-                className="flex flex-col p-4 flex-1 min-w-64 max-w-80"
+                key={u.id}
+                className="flex flex-row items-center relative flex-1 min-w-64 max-w-80 overflow-hidden"
               >
-                <div className="flex flex-row gap-4 items-center relative">
-                  {user.picture.length ? (
-                    <img
-                      src={user.picture}
-                      alt={`${user.name}'s photo`}
-                      className="rounded-full h-16 w-16"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-slate-500 rounded-full">
-                      <LucideUser className="mx-auto mt-5 scale-[1.5] text-white" />
-                    </div>
-                  )}
-                  <h3 className="font-semibold text-xl text-center">
-                    {user.name}
-                  </h3>
-                  <div className="absolute top-0 right-0 flex flex-row items-center gap-1 text-muted-foreground">
-                    {user.perms.includes("Everything") && <LucideShieldCheck />}
-                    {user.perms.includes("DisplayFlower") && <LucideFlower />}
+                {u.picture.length ? (
+                  <img
+                    src={u.picture}
+                    alt={`${u.name}'s photo`}
+                    className="h-24 w-24"
+                  />
+                ) : (
+                  <div className="w-24 h-24 bg-slate-500">
+                    <LucideUser className="mx-auto my-auto h-full scale-[2.25] text-white" />
+                  </div>
+                )}
+                <div className="flex flex-col justify-between p-3 pb-2 h-full self-start flex-1">
+                  <div className="flex flex-row items-center w-full text-muted-foreground gap-1">
+                    <h3 className="font-semibold text-xl mr-auto text-black">
+                      {u.name}
+                    </h3>
+                    {u.perms.includes("Everything") && <LucideShieldCheck />}
+                    {u.perms.includes("DisplayFlower") && <LucideFlower />}
                     <div
                       className="block w-5 h-5 rounded-full"
                       style={{
-                        backgroundColor: `#${user.color}`,
+                        backgroundColor: `#${u.color}`,
                       }}
                     />
+                  </div>
+                  <div className="flex flex-row justify-end items-center w-full gap-2">
+                    {user?.perms.includes("Everything") && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="rounded-full">
+                            <LucideWrench />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <p className="p-1">Edit administrative attributes.</p>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    {u.id === user?.id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="default"
+                            size={"icon"}
+                            className="rounded-full"
+                          >
+                            <LucidePaintbrush className="scale-[.9]" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <p className="p-1">Edit your cosmetic attributes.</p>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </Card>

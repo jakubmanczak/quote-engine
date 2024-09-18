@@ -85,8 +85,11 @@ export default function UsersPage() {
                     className="h-24 w-24"
                   />
                 ) : (
-                  <div className="w-24 h-24 bg-slate-500">
-                    <LucideUser className="mx-auto my-auto h-full scale-[2.25] text-white" />
+                  <div
+                    className="w-24 h-24"
+                    style={{ backgroundColor: `#${u.color}` }}
+                  >
+                    <LucideUser className="mx-auto my-auto h-full scale-[2.25] text-white mix-blend-exclusion" />
                   </div>
                 )}
                 <div className="flex flex-col justify-between p-3 pb-2 h-full self-start flex-1">

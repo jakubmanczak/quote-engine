@@ -12,23 +12,34 @@ import {
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
 import {
-  FlowerIcon,
   LucideFlower,
   LucidePaintbrush,
   LucideShieldCheck,
   LucideUser,
   LucideWrench,
-  ShieldCheckIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<user[]>([]);
   const [user, setUser] = useState<user | null>(null);
+  const [users, setUsers] = useState<user[]>([]);
+
+  // all users, but current logged in is in front
+  const userslist = [user]
+    .concat(
+      users.filter((u) => {
+        return u.id !== user?.id;
+      })
+    )
+    .filter((el) => {
+      return el !== null;
+    });
+
   const [fetchStat, setFetchStat] = useState<{
     status: number;
     statusText: string;
   } | null>(null);
+
   const getUsers = async () => {
     const res = await qfetch("/users");
     setFetchStat({
@@ -43,16 +54,19 @@ export default function UsersPage() {
     const array: user[] = await res.json();
     setUsers(array);
   };
+
   const getUser = async () => {
     const res = await qfetch("/users/self");
     if (!res.ok) return;
     const resuser = await res.json();
     setUser(resuser);
   };
+
   useEffect(() => {
     getUsers();
     getUser();
   }, []);
+
   return (
     <Dashboard>
       {fetchStat?.status === 200 && (
@@ -72,7 +86,7 @@ export default function UsersPage() {
       )}
       {fetchStat?.status === 200 && (
         <div className="flex flex-row flex-wrap gap-4 justify-center sm:justify-normal">
-          {users.map((u) => {
+          {userslist.map((u) => {
             return (
               <Card
                 key={u.id}

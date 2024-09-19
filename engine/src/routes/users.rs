@@ -117,12 +117,7 @@ async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<Str
     }
 }
 
-async fn get_users_count(headers: HeaderMap, cookies: Cookies) -> Response {
-    match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
-        Ok(_) => (),
-    };
-
+async fn get_users_count() -> Response {
     let conn = get_conn();
     let query = "SELECT COUNT(*) FROM users";
     let mut statement = conn.prepare(query).unwrap();

@@ -6,10 +6,9 @@ import { qfetch } from "@/lib/qfetch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-const CreateUser = () => {
+const CreateUser = (props: { userRefresh: () => void }) => {
   const [user, setUser] = useState<string>("");
   const [pass, setPass] = useState<string>("");
-  const router = useRouter();
   return (
     <div className="flex flex-col gap-1 py-4">
       <p>Username</p>
@@ -43,7 +42,7 @@ const CreateUser = () => {
             } else {
               toast("Something went wrong...");
             }
-            router.push("/users");
+            props.userRefresh();
           });
         }}
       >

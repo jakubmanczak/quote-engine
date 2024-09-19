@@ -83,7 +83,7 @@ export default function UsersPage() {
                 contentTitle="Adding a new user"
                 contentDescr="Input their username and starting password here."
               >
-                <CreateUser />
+                <CreateUser userRefresh={getUsers} />
               </DialogDrawer>
             ))}
         </div>

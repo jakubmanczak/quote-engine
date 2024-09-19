@@ -10,6 +10,28 @@ const CreateUser = (props: { userRefresh: () => void }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [user, setUser] = useState<string>("");
   const [pass, setPass] = useState<string>("");
+
+  const submit = () => {
+    qfetch("/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: user,
+        pass,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast("User succesfully created!");
+      } else {
+        toast("Something went wrong...");
+      }
+      props.userRefresh();
+      setOpen(false);
+    });
+  };
+
   return (
     <DialogDrawer
       contentTitle="Adding a new user"
@@ -32,31 +54,11 @@ const CreateUser = (props: { userRefresh: () => void }) => {
           type="password"
           value={pass}
           onChange={(e) => setPass(e.target.value)}
-        />
-        <Button
-          onClick={() => {
-            qfetch("/users", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                name: user,
-                pass,
-              }),
-            }).then((res) => {
-              if (res.ok) {
-                toast("User succesfully created!");
-              } else {
-                toast("Something went wrong...");
-              }
-              props.userRefresh();
-              setOpen(false);
-            });
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
           }}
-        >
-          {"Create user"}
-        </Button>
+        />
+        <Button onClick={() => submit()}>{"Create user"}</Button>
       </div>
     </DialogDrawer>
   );

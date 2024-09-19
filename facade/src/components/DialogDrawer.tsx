@@ -1,5 +1,4 @@
-import { PropsWithChildren, useState } from "react";
-import { Button } from "./ui/button";
+import { Dispatch, PropsWithChildren, SetStateAction, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,21 +17,21 @@ import { useMediaQuery } from "@uidotdev/usehooks";
 
 const DialogDrawer = ({
   children,
+  open,
+  setOpen,
   ...props
 }: PropsWithChildren<{
-  // buttonVariant: keyof typeof buttonVariants;
-  buttonText: string;
+  trigger: JSX.Element;
   contentTitle: string;
   contentDescr: string;
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
 }>) => {
-  const [open, setOpen] = useState<boolean>(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return isDesktop ? (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={"outline"}>{props.buttonText}</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{props.trigger}</DialogTrigger>
       <DialogContent>
         <DialogTitle>{props.contentTitle}</DialogTitle>
         <DialogDescription>{props.contentDescr}</DialogDescription>
@@ -41,9 +40,7 @@ const DialogDrawer = ({
     </Dialog>
   ) : (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button variant={"outline"}>{props.buttonText}</Button>
-      </DrawerTrigger>
+      <DrawerTrigger asChild>{props.trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerTitle className="text-center pt-8">
           {props.contentTitle}

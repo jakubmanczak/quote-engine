@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
 import {
@@ -78,13 +79,7 @@ export default function UsersPage() {
           <p className="text-xl">Users</p>
           {user?.perms.includes("CreateUsers") ||
             (user?.perms.includes("Everything") && (
-              <DialogDrawer
-                buttonText="Add new user"
-                contentTitle="Adding a new user"
-                contentDescr="Input their username and starting password here."
-              >
-                <CreateUser userRefresh={getUsers} />
-              </DialogDrawer>
+              <CreateUser userRefresh={getUsers} />
             ))}
         </div>
       )}

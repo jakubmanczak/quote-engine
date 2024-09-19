@@ -85,12 +85,12 @@ export default function UsersPage() {
         </div>
       )}
       {fetchStat?.status === 200 && (
-        <div className="flex flex-row flex-wrap gap-4 justify-center sm:justify-normal">
+        <div className="flex flex-row flex-wrap gap-4">
           {userslist.map((u) => {
             return (
               <Card
                 key={u.id}
-                className="flex flex-row items-center relative flex-1 min-w-64 max-w-80 overflow-hidden"
+                className="flex flex-row items-center relative flex-1 min-w-80 max-w-80 overflow-hidden"
               >
                 {u.picture.length ? (
                   <img
@@ -124,8 +124,12 @@ export default function UsersPage() {
                     {user?.perms.includes("Everything") && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="rounded-full">
-                            <LucideWrench />
+                          <Button
+                            variant="outline"
+                            size={"icon"}
+                            className="rounded-full"
+                          >
+                            <LucideWrench className="scale-[.9]" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -138,9 +142,11 @@ export default function UsersPage() {
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="default"
-                            size={"icon"}
-                            className="rounded-full"
+                            className="rounded-full gap-1"
                           >
+                            <span className="hidden sm:inline">
+                              {"Customize"}
+                            </span>
                             <LucidePaintbrush className="scale-[.9]" />
                           </Button>
                         </DropdownMenuTrigger>

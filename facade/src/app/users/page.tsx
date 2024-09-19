@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { qfetch } from "@/lib/qfetch";
@@ -19,6 +22,7 @@ import {
   LucideWrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function UsersPage() {
   const [user, setUser] = useState<user | null>(null);
@@ -121,22 +125,28 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="flex flex-row justify-end items-center w-full gap-2">
-                    {user?.perms.includes("Everything") && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size={"icon"}
-                            className="rounded-full"
-                          >
-                            <LucideWrench className="scale-[.9]" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <p className="p-1">Edit administrative attributes.</p>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size={"icon"}
+                          className="rounded-full"
+                        >
+                          <LucideWrench className="scale-[.9]" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => {
+                            navigator.clipboard.writeText(u.id);
+                            toast(`User ID copied!`);
+                          }}
+                        >
+                          {"Copy user ID"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {u.id === user?.id && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

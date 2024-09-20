@@ -1,23 +1,19 @@
 "use client";
 import { CreateUser } from "@/components/CreateUser";
 import { Dashboard } from "@/components/Dashboard";
-import { DialogDrawer } from "@/components/DialogDrawer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
 import {
   LucideFlower,
-  LucidePaintbrush,
   LucideShieldCheck,
   LucideUser,
   LucideWrench,
@@ -123,14 +119,42 @@ export default function UsersPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="outline"
-                          size={"icon"}
+                          variant={u.id === user?.id ? "default" : "outline"}
+                          size={u.id === user?.id ? "default" : "icon"}
                           className="rounded-full"
                         >
+                          {u.id === user?.id && (
+                            <span className="mr-1">{"Settings"}</span>
+                          )}
                           <LucideWrench className="scale-[.9]" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        {(user?.perms.includes("Everything") ||
+                          user?.perms.includes("MutateUsers") ||
+                          user?.id === u.id) && (
+                          <>
+                            <DropdownMenuItem
+                              disabled
+                              className="cursor-pointer"
+                            >
+                              Edit nickname
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled
+                              className="cursor-pointer"
+                            >
+                              Edit picture
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled
+                              className="cursor-pointer"
+                            >
+                              Edit colour
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem
                           className="cursor-pointer"
                           onClick={() => {
@@ -140,26 +164,23 @@ export default function UsersPage() {
                         >
                           {"Copy user ID"}
                         </DropdownMenuItem>
+                        {(user?.perms.includes("Everything") ||
+                          user?.perms.includes("MutateUsersPermissions")) && (
+                          <DropdownMenuItem disabled className="cursor-pointer">
+                            Permissions
+                          </DropdownMenuItem>
+                        )}
+                        {(user?.perms.includes("Everything") ||
+                          user?.perms.includes("DeleteUsers")) && (
+                          <DropdownMenuItem
+                            disabled
+                            className="cursor-pointer text-red-600"
+                          >
+                            Delete user
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {u.id === user?.id && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="default"
-                            className="rounded-full gap-1"
-                          >
-                            <span className="hidden sm:inline">
-                              {"Customize"}
-                            </span>
-                            <LucidePaintbrush className="scale-[.9]" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <p className="p-1">Edit your cosmetic attributes.</p>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
                   </div>
                 </div>
               </Card>

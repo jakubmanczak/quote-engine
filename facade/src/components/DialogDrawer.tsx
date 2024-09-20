@@ -1,4 +1,5 @@
-import { Dispatch, PropsWithChildren, SetStateAction, useState } from "react";
+"use client";
+import { Dispatch, PropsWithChildren, SetStateAction } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
-import { useMediaQuery } from "@uidotdev/usehooks";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 const DialogDrawer = ({
   children,
@@ -21,9 +22,9 @@ const DialogDrawer = ({
   setOpen,
   ...props
 }: PropsWithChildren<{
-  trigger: JSX.Element;
+  trigger?: JSX.Element;
   contentTitle: string;
-  contentDescr: string;
+  contentDescr?: string;
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }>) => {
@@ -34,7 +35,9 @@ const DialogDrawer = ({
       <DialogTrigger asChild>{props.trigger}</DialogTrigger>
       <DialogContent>
         <DialogTitle>{props.contentTitle}</DialogTitle>
-        <DialogDescription>{props.contentDescr}</DialogDescription>
+        {props.contentDescr && (
+          <DialogDescription>{props.contentDescr}</DialogDescription>
+        )}
         <div className="mx-auto">{children}</div>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,7 @@
 "use client";
 import { CreateUser } from "@/components/CreateUser";
 import { Dashboard } from "@/components/Dashboard";
+import { DialogDrawer } from "@/components/DialogDrawer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
 import {
@@ -24,6 +26,12 @@ import { toast } from "sonner";
 export default function UsersPage() {
   const [user, setUser] = useState<user | null>(null);
   const [users, setUsers] = useState<user[]>([]);
+
+  const [dwiOpen, setDwiOpen] = useState<boolean>(false);
+  const [dwiAction, setDwiAction] = useState<"nick" | "pic" | "clr">("nick");
+
+  const [editUserId, setEditUserId] = useState<string>("");
+  const [editNickname, setEditNickname] = useState<string>("");
 
   // all users, but current logged in is in front
   const userslist = [user]
@@ -63,6 +71,27 @@ export default function UsersPage() {
     setUser(resuser);
   };
 
+  const submitEditNickname = () => {
+    qfetch(`/users/${editUserId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: editNickname,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast("Nickname changed successfully!");
+      } else {
+        toast("Something went wrong...");
+      }
+      getUsers();
+      getUser();
+      setDwiOpen(false);
+    });
+  };
+
   useEffect(() => {
     getUsers();
     getUser();
@@ -70,6 +99,46 @@ export default function UsersPage() {
 
   return (
     <Dashboard>
+      <DialogDrawer
+        open={dwiOpen}
+        setOpen={setDwiOpen}
+        contentTitle={
+          dwiAction === "nick"
+            ? "Edit nickname"
+            : dwiAction === "pic"
+            ? "Edit picture"
+            : dwiAction === "clr"
+            ? "Edit colour"
+            : "Unknown action"
+        }
+      >
+        <div className="flex flex-col gap-1 py-4">
+          {dwiAction === "nick" && (
+            <>
+              <p>Nickname</p>
+              <Input
+                className="mb-4"
+                type="text"
+                value={editNickname}
+                onChange={(e) => setEditNickname(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitEditNickname();
+                }}
+              />
+            </>
+          )}
+          <Button
+            onClick={() => {
+              switch (dwiAction) {
+                case "nick":
+                  submitEditNickname();
+              }
+            }}
+          >
+            {"Submit"}
+          </Button>
+        </div>
+      </DialogDrawer>
       {fetchStat?.status === 200 && (
         <div className="flex flex-row gap-4 items-center">
           <p className="text-xl">Users</p>
@@ -135,8 +204,13 @@ export default function UsersPage() {
                           user?.id === u.id) && (
                           <>
                             <DropdownMenuItem
-                              disabled
                               className="cursor-pointer"
+                              onClick={() => {
+                                setDwiAction("nick");
+                                setEditUserId(u.id);
+                                setEditNickname(u.name);
+                                setDwiOpen(true);
+                              }}
                             >
                               Edit nickname
                             </DropdownMenuItem>

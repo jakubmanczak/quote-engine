@@ -4,9 +4,11 @@ services:
     ports:
       - "20191:2019"
     volumes:
-      - sqlite:/sqlite
+      - quote-volume:/sqlite
     environment:
       - DBPATH=/sqlite/quotes.db
+      - SECRET=${SECRET}
+      - PORT=${PORT}
     develop:
       watch:
         - action: rebuild
@@ -22,4 +24,4 @@ services:
     environment:
       - NODE_ENV=production
 volumes:
-  sqlite:
+  quote-volume:

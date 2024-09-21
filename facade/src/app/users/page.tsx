@@ -32,6 +32,7 @@ export default function UsersPage() {
 
   const [editUserId, setEditUserId] = useState<string>("");
   const [editUsername, setEditUsername] = useState<string>("");
+  const [editColor, setEditColor] = useState<string>("");
 
   // all users, but current logged in is in front
   const userslist = [user]
@@ -92,6 +93,27 @@ export default function UsersPage() {
     });
   };
 
+  const submitEditColour = () => {
+    qfetch(`/users/${editUserId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        color: editColor,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast("Colour changed successfully!");
+      } else {
+        toast("Something went wrong...");
+      }
+      getUsers();
+      getUser();
+      setDwiOpen(false);
+    });
+  };
+
   useEffect(() => {
     getUsers();
     getUser();
@@ -127,11 +149,26 @@ export default function UsersPage() {
               />
             </>
           )}
+          {dwiAction === "clr" && (
+            <>
+              <p>Colour: {editColor}</p>
+              <Input
+                className="mb-4"
+                type="color"
+                value={`#${editColor}`}
+                onChange={(e) =>
+                  setEditColor(e.target.value.replaceAll("#", ""))
+                }
+              />
+            </>
+          )}
           <Button
             onClick={() => {
               switch (dwiAction) {
                 case "name":
                   submitEditUsername();
+                case "clr":
+                  submitEditColour();
               }
             }}
           >
@@ -221,8 +258,13 @@ export default function UsersPage() {
                               Edit picture
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              disabled
                               className="cursor-pointer"
+                              onClick={() => {
+                                setDwiAction("clr");
+                                setEditUserId(u.id);
+                                setEditColor(u.color);
+                                setDwiOpen(true);
+                              }}
                             >
                               Edit colour
                             </DropdownMenuItem>

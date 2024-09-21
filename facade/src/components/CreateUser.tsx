@@ -46,6 +46,7 @@ const CreateUser = (props: { userRefresh: () => void }) => {
           className="mb-4"
           type="text"
           value={user}
+          autoComplete="off"
           onChange={(e) => setUser(e.target.value)}
         />
         <p>Password</p>
@@ -53,6 +54,7 @@ const CreateUser = (props: { userRefresh: () => void }) => {
           className="mb-4"
           type="password"
           value={pass}
+          autoComplete="off"
           onChange={(e) => setPass(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();

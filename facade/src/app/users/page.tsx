@@ -141,6 +141,7 @@ export default function UsersPage() {
               <Input
                 className="mb-4"
                 type="text"
+                autoComplete="off"
                 value={editUsername}
                 onChange={(e) => setEditUsername(e.target.value)}
                 onKeyDown={(e) => {

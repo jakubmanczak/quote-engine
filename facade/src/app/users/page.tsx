@@ -28,10 +28,10 @@ export default function UsersPage() {
   const [users, setUsers] = useState<user[]>([]);
 
   const [dwiOpen, setDwiOpen] = useState<boolean>(false);
-  const [dwiAction, setDwiAction] = useState<"nick" | "pic" | "clr">("nick");
+  const [dwiAction, setDwiAction] = useState<"name" | "pic" | "clr">("name");
 
   const [editUserId, setEditUserId] = useState<string>("");
-  const [editNickname, setEditNickname] = useState<string>("");
+  const [editUsername, setEditUsername] = useState<string>("");
 
   // all users, but current logged in is in front
   const userslist = [user]
@@ -71,18 +71,18 @@ export default function UsersPage() {
     setUser(resuser);
   };
 
-  const submitEditNickname = () => {
+  const submitEditUsername = () => {
     qfetch(`/users/${editUserId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: editNickname,
+        name: editUsername,
       }),
     }).then((res) => {
       if (res.ok) {
-        toast("Nickname changed successfully!");
+        toast("Username changed successfully!");
       } else {
         toast("Something went wrong...");
       }
@@ -103,8 +103,8 @@ export default function UsersPage() {
         open={dwiOpen}
         setOpen={setDwiOpen}
         contentTitle={
-          dwiAction === "nick"
-            ? "Edit nickname"
+          dwiAction === "name"
+            ? "Edit Username"
             : dwiAction === "pic"
             ? "Edit picture"
             : dwiAction === "clr"
@@ -113,16 +113,16 @@ export default function UsersPage() {
         }
       >
         <div className="flex flex-col gap-1 py-4">
-          {dwiAction === "nick" && (
+          {dwiAction === "name" && (
             <>
-              <p>Nickname</p>
+              <p>Username</p>
               <Input
                 className="mb-4"
                 type="text"
-                value={editNickname}
-                onChange={(e) => setEditNickname(e.target.value)}
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") submitEditNickname();
+                  if (e.key === "Enter") submitEditUsername();
                 }}
               />
             </>
@@ -130,8 +130,8 @@ export default function UsersPage() {
           <Button
             onClick={() => {
               switch (dwiAction) {
-                case "nick":
-                  submitEditNickname();
+                case "name":
+                  submitEditUsername();
               }
             }}
           >
@@ -206,13 +206,13 @@ export default function UsersPage() {
                             <DropdownMenuItem
                               className="cursor-pointer"
                               onClick={() => {
-                                setDwiAction("nick");
+                                setDwiAction("name");
                                 setEditUserId(u.id);
-                                setEditNickname(u.name);
+                                setEditUsername(u.name);
                                 setDwiOpen(true);
                               }}
                             >
-                              Edit nickname
+                              Edit username
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               disabled

@@ -1,3 +1,4 @@
 /engine/target
 *.db
 .env
+.DS_Store

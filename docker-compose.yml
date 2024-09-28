@@ -3,6 +3,7 @@ services:
     build: ./engine/
     ports:
       - "20191:2019"
+    restart: always
     volumes:
       - quote-volume:/sqlite
     environment:
@@ -19,6 +20,7 @@ services:
       context: ./facade/
     ports:
       - "20190:3000"
+    restart: always
     environment:
       - NODE_ENV=production
 volumes:

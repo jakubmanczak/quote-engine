@@ -31,8 +31,9 @@ const NO_USERS: &str = "No users found.";
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/users", get(get_users))
-        .route("/users/:id", get(get_user_by_id))
         .route("/users/count", get(get_users_count))
+        .route("/users/:id", get(get_user_by_id))
+        .route("/users/:id/picture", get(get_user_pic))
         .route("/users", post(post_users))
         .route("/users/:id", patch(patch_user))
         .route("/users/:id/changepassword", patch(patch_user_password))
@@ -115,6 +116,35 @@ async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<Str
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     }
+}
+
+async fn get_user_pic(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
+    match authenticate(&headers, cookies) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
+    };
+
+    let conn = get_conn();
+    let query = "SELECT picture FROM users WHERE id = :id";
+    let mut statement = conn.prepare(query).unwrap();
+    statement.bind((":id", id.as_str())).unwrap();
+
+    match statement.next() {
+        Ok(State::Row) => {
+            let picture = statement.read::<String, _>("picture").unwrap();
+            match picture.len() {
+                0 => {
+                    return (StatusCode::NO_CONTENT).into_response();
+                }
+                _ => return (StatusCode::TEMPORARY_REDIRECT, picture).into_response(),
+            }
+        }
+        Ok(State::Done) => return (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
+        Err(e) => {
+            error!("Error in GET /users/:id/pic {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
 }
 
 async fn get_users_count() -> Response {

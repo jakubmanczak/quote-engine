@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use strum::{EnumIter, VariantArray};
 use UserPermission::*;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, VariantArray, EnumIter)]
 pub enum UserPermission {
     Everything,
     MutateOwnUser,
@@ -16,18 +17,6 @@ pub enum UserPermission {
     DisplayFlower,
 }
 
-pub const USER_PERMISSIONS: [UserPermission; 9] = [
-    Everything,
-    MutateOwnUser,
-    CreateUsers,
-    DeleteUsers,
-    MutateUsers,
-    MutateUsersPermissions,
-    MutateUsersPasswords,
-    InspectLogs,
-    DisplayFlower,
-];
-
 pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
 
 impl UserPermission {
@@ -40,9 +29,9 @@ impl UserPermission {
     }
     pub fn get_permissions_from_bits(bits: u32) -> Vec<UserPermission> {
         let mut vec = Vec::new();
-        for perm in USER_PERMISSIONS {
+        for perm in UserPermission::VARIANTS {
             if (bits & UserPermission::get_bit_from_permission(&perm)) > 0 {
-                vec.push(perm)
+                vec.push(perm.clone())
             }
         }
         return vec;

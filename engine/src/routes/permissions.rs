@@ -3,13 +3,14 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use strum::VariantArray;
 
-use crate::permissions::USER_PERMISSIONS;
+use crate::permissions::UserPermission;
 
 pub fn exported_routes() -> Router {
     Router::new().route("/permissions", get(permissions))
 }
 
 async fn permissions() -> Response {
-    Json(USER_PERMISSIONS).into_response()
+    Json(UserPermission::VARIANTS).into_response()
 }

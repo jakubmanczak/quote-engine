@@ -6,6 +6,7 @@ mod logs;
 mod permissions;
 mod quotes;
 mod users;
+mod lines;
 
 pub fn routes() -> Router {
     Router::new()
@@ -17,6 +18,7 @@ pub fn routes() -> Router {
         .merge(logs::exported_routes())
         .merge(auth::exported_routes())
         .merge(quotes::exported_routes())
+        .merge(lines::exported_routes())
         .merge(authors::exported_routes())
 }
 

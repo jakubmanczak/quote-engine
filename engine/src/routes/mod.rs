@@ -2,11 +2,11 @@ use axum::{routing::get, Router};
 
 mod auth;
 mod authors;
+mod lines;
 mod logs;
 mod permissions;
 mod quotes;
 mod users;
-mod lines;
 
 pub fn routes() -> Router {
     Router::new()

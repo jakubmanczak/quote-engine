@@ -12,12 +12,16 @@ pub enum UserPermission {
     MutateUsersPermissions,
     MutateUsersPasswords,
     InspectLogs,
+    CreateAuthors,
+    ChangeAuthorsName,
+    ChangeAuthorsObfuscatedName,
+    DeleteAuthors,
 
     // OTHER ENTITLEMENTS
     DisplayFlower,
 }
 
-pub const DEFAULT_PERMISSIONS: [UserPermission; 1] = [MutateOwnUser];
+pub const DEFAULT_PERMISSIONS: [UserPermission; 2] = [MutateOwnUser, CreateAuthors];
 
 impl UserPermission {
     pub fn check_permission(checked_perm: &UserPermission, perms: &Vec<UserPermission>) -> bool {
@@ -54,6 +58,10 @@ impl UserPermission {
             MutateUsersPasswords => 0b1 << 6,
             InspectLogs => 0b1 << 7,
             DisplayFlower => 0b1 << 8,
+            CreateAuthors => 0b1 << 9,
+            ChangeAuthorsName => 0b1 << 10,
+            ChangeAuthorsObfuscatedName => 0b1 << 11,
+            DeleteAuthors => 0b1 << 12,
         }
     }
 }

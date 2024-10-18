@@ -1,4 +1,9 @@
-use crate::{db::get_conn, error::Error, models::User, permissions::UserPermission};
+use crate::{
+    db::get_conn,
+    error::Error,
+    models::{Author, User},
+    permissions::UserPermission,
+};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 use ulid::Ulid;
@@ -34,6 +39,7 @@ pub enum LogEvent {
         old_perms: Vec<UserPermission>,
         new_perms: Vec<UserPermission>,
     },
+    AuthorCreated(Author),
 }
 
 impl LogEvent {

@@ -33,7 +33,7 @@ pub struct Line {
     pub author: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Author {
     pub id: Ulid,
     pub name: String,

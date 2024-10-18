@@ -2,7 +2,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
-    Router
+    Router,
 };
 use sqlite::State;
 use tracing::error;
@@ -22,9 +22,7 @@ async fn get_lines_count() -> Response {
             let count: i64 = statement.read(0).unwrap();
             return count.to_string().into_response();
         }
-        Ok(State::Done) => {
-            return (StatusCode::NOT_FOUND, "No lines in database.").into_response()
-        }
+        Ok(State::Done) => return (StatusCode::NOT_FOUND, "No lines in database.").into_response(),
         Err(e) => {
             error!("Error in GET /lines/count: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();

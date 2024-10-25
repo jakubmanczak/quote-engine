@@ -28,7 +28,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<user[]>([]);
 
   const [dwiOpen, setDwiOpen] = useState<boolean>(false);
-  const [dwiAction, setDwiAction] = useState<"name" | "pic" | "clr">("name");
+  const [dwiAction, setDwiAction] = useState<"name" | "pic" | "clr" | "delete">(
+    "name"
+  );
 
   const [editUserId, setEditUserId] = useState<string>("");
   const [editUsername, setEditUsername] = useState<string>("");
@@ -119,6 +121,20 @@ export default function UsersPage() {
     getUser();
   }, []);
 
+  function submitDeleteUser() {
+    qfetch(`/users/${editUserId}`, {
+      method: "DELETE",
+    }).then((res) => {
+      if (res.ok) {
+        toast("User deleted.");
+      } else {
+        toast("Something went wrong...");
+      }
+      getUsers();
+      setDwiOpen(false);
+    });
+  }
+
   return (
     <Dashboard>
       <DialogDrawer
@@ -131,6 +147,8 @@ export default function UsersPage() {
             ? "Edit picture"
             : dwiAction === "clr"
             ? "Edit colour"
+            : dwiAction === "delete"
+            ? "User deletion"
             : "Unknown action"
         }
       >
@@ -163,6 +181,14 @@ export default function UsersPage() {
               />
             </>
           )}
+          {dwiAction === "delete" && (
+            <>
+              <p className="text-center mb-4">
+                Are you sure about this? <br />
+                This action is not reversible.
+              </p>
+            </>
+          )}
           <Button
             onClick={() => {
               switch (dwiAction) {
@@ -170,10 +196,13 @@ export default function UsersPage() {
                   submitEditUsername();
                 case "clr":
                   submitEditColour();
+                case "delete":
+                  submitDeleteUser();
               }
             }}
+            variant={dwiAction === "delete" ? "destructive" : "default"}
           >
-            {"Submit"}
+            {dwiAction === "delete" ? "Yes, really" : "Submit"}
           </Button>
         </div>
       </DialogDrawer>
@@ -290,8 +319,14 @@ export default function UsersPage() {
                         {(user?.perms.includes("Everything") ||
                           user?.perms.includes("DeleteUsers")) && (
                           <DropdownMenuItem
-                            disabled
+                            disabled={u.id === user.id}
                             className="cursor-pointer text-red-600"
+                            onClick={() => {
+                              if (u.id === user.id) return;
+                              setDwiAction("delete");
+                              setEditUserId(u.id);
+                              setDwiOpen(true);
+                            }}
                           >
                             Delete user
                           </DropdownMenuItem>

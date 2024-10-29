@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
-import { LucideTrash2, LucideWrench } from "lucide-react";
+import {
+  LucideMessageSquareQuote,
+  LucideQuote,
+  LucideScrollText,
+  LucideTextQuote,
+  LucideTrash2,
+  LucideWrench,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -138,12 +145,13 @@ const Author = ({ data, ...props }: { data: author }) => {
           <h3 className="text-3xl">{"33"}</h3>
         </div>
       </div>
-      <div className="pt-2 flex flex-col gap-2 w-full">
-        <Button variant={"outline"} className="w-full" disabled>
-          <LucideWrench />
+      <div className="pt-2 flex flex-row gap-2 w-full">
+        <Button variant={"outline"} className="w-full flex gap-2" disabled>
+          <LucideScrollText />
+          {"Quotes"}
         </Button>
         <Button variant={"outline"} className="w-full" disabled>
-          <LucideTrash2 />
+          <LucideWrench />
         </Button>
       </div>
     </Card>

@@ -20,20 +20,24 @@ import {
   LucideUser,
   LucideWrench,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function UsersPage() {
+  const router = useRouter();
   const [user, setUser] = useState<user | null>(null);
   const [users, setUsers] = useState<user[]>([]);
 
   const [dwiOpen, setDwiOpen] = useState<boolean>(false);
-  const [dwiAction, setDwiAction] = useState<"name" | "pic" | "clr" | "delete">(
-    "name"
-  );
+  const [dwiAction, setDwiAction] = useState<
+    "name" | "pic" | "clr" | "delete" | "passw"
+  >("name");
 
   const [editUserId, setEditUserId] = useState<string>("");
   const [editUsername, setEditUsername] = useState<string>("");
+  const [editOldPass, setEditOldPass] = useState<string>("");
+  const [editNewPass, setEditNewPass] = useState<string>("");
   const [editColor, setEditColor] = useState<string>("");
 
   // all users, but current logged in is in front
@@ -116,12 +120,29 @@ export default function UsersPage() {
     });
   };
 
-  useEffect(() => {
-    getUsers();
-    getUser();
-  }, []);
+  const submitEditPassword = () => {
+    qfetch(`/users/${editUserId}/changepassword`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pass: editNewPass,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast("Password changed!");
+        qfetch("/auth/clear");
+        router.push("/login");
+      } else {
+        toast("Something went wrong...");
+      }
 
-  function submitDeleteUser() {
+      setDwiOpen(false);
+    });
+  };
+
+  const submitDeleteUser = () => {
     qfetch(`/users/${editUserId}`, {
       method: "DELETE",
     }).then((res) => {
@@ -133,7 +154,12 @@ export default function UsersPage() {
       getUsers();
       setDwiOpen(false);
     });
-  }
+  };
+
+  useEffect(() => {
+    getUsers();
+    getUser();
+  }, []);
 
   return (
     <Dashboard>
@@ -147,6 +173,8 @@ export default function UsersPage() {
             ? "Edit picture"
             : dwiAction === "clr"
             ? "Edit colour"
+            : dwiAction === "passw"
+            ? "Change password"
             : dwiAction === "delete"
             ? "User deletion"
             : "Unknown action"
@@ -189,6 +217,19 @@ export default function UsersPage() {
               </p>
             </>
           )}
+          {dwiAction === "passw" && (
+            <>
+              <label htmlFor="changepass-newpass">New password</label>
+              <Input
+                id="changepass-newpass"
+                type="password"
+                autoComplete="new-password"
+                className="mb-8"
+                value={editNewPass}
+                onChange={(e) => setEditNewPass(e.target.value)}
+              />
+            </>
+          )}
           <Button
             onClick={() => {
               switch (dwiAction) {
@@ -198,6 +239,8 @@ export default function UsersPage() {
                   submitEditColour();
                 case "delete":
                   submitDeleteUser();
+                case "passw":
+                  submitEditPassword();
               }
             }}
             variant={dwiAction === "delete" ? "destructive" : "default"}
@@ -218,6 +261,11 @@ export default function UsersPage() {
       {fetchStat?.status === 200 && (
         <div className="flex flex-row flex-wrap gap-4">
           {userslist.map((u) => {
+            const editpasswordvisible =
+              user?.perms.includes("Everything") ||
+              (user?.perms.includes("MutateUsersPasswords") &&
+                !u.perms.includes("Everything")) ||
+              (user?.perms.includes("MutateOwnUser") && user.id === u.id);
             return (
               <Card
                 key={u.id}
@@ -314,6 +362,18 @@ export default function UsersPage() {
                           user?.perms.includes("MutateUsersPermissions")) && (
                           <DropdownMenuItem disabled className="cursor-pointer">
                             Permissions
+                          </DropdownMenuItem>
+                        )}
+                        {editpasswordvisible && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => {
+                              setDwiAction("passw");
+                              setEditUserId(u.id);
+                              setDwiOpen(true);
+                            }}
+                          >
+                            {"New password"}
                           </DropdownMenuItem>
                         )}
                         {(user?.perms.includes("Everything") ||

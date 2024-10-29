@@ -4,18 +4,22 @@ import { Dashboard } from "@/components/Dashboard";
 import { DialogDrawer } from "@/components/DialogDrawer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { qfetch } from "@/lib/qfetch";
 import { user } from "@/types/user";
-import {
-  LucideMessageSquareQuote,
-  LucideQuote,
-  LucideScrollText,
-  LucideTextQuote,
-  LucideTrash2,
-  LucideWrench,
-} from "lucide-react";
+import { LucideScrollText, LucideWrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -129,7 +133,7 @@ export default function Page() {
 
 const Author = ({ data, ...props }: { data: author }) => {
   return (
-    <Card className="p-4 w-full h-full min-h-40 flex flex-col items-center gap-4">
+    <Card className="p-4 flex flex-col items-center gap-4">
       <div className="text-center">
         <h3 className="sm:text-lg font-medium">{data.name}</h3>
         <p className="text-sm text-neutral-400">{data.obfname}</p>
@@ -150,9 +154,40 @@ const Author = ({ data, ...props }: { data: author }) => {
           <LucideScrollText />
           {"Quotes"}
         </Button>
-        <Button variant={"outline"} className="w-full" disabled>
-          <LucideWrench />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant={"outline"} className="w-full">
+              <LucideWrench />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{"Names"}</DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem className="cursor-pointer" disabled>
+                    Modify name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" disabled>
+                    Modify codename
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => {
+                navigator.clipboard.writeText(data.id);
+                toast(`Author ID copied!`);
+              }}
+            >
+              {"Copy author ID"}
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer text-red-600" disabled>
+              {"Delete author"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </Card>
     // <Card className="p-2 px-4 flex items-center gap-2">

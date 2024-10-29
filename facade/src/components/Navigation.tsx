@@ -29,9 +29,8 @@ const navigation: {
   },
   {
     name: "Authors",
-    href: "#quote-authors",
+    href: "/authors",
     icon: <LucideContact />,
-    disabled: true,
   },
   {
     name: "Users",

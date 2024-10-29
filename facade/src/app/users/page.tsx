@@ -197,10 +197,13 @@ export default function UsersPage() {
               switch (dwiAction) {
                 case "name":
                   submitEditUsername();
+                  break;
                 case "clr":
                   submitEditColour();
+                  break;
                 case "delete":
                   submitDeleteUser();
+                  break;
               }
             }}
             variant={dwiAction === "delete" ? "destructive" : "default"}

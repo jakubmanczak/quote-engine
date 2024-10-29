@@ -5,7 +5,7 @@ services:
       - "20191:2019"
     restart: always
     volumes:
-      - quote-volume:/sqlite
+      - data:/sqlite
     environment:
       - DBPATH=/sqlite/quotes.db
       - SECRET=${SECRET}
@@ -24,4 +24,4 @@ services:
     environment:
       - NODE_ENV=production
 volumes:
-  quote-volume:
+  data:

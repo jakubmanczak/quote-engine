@@ -28,7 +28,12 @@ pub fn exported_routes() -> Router {
         .route("/authors/:id", delete(delete_author))
 }
 
-async fn get_authors() -> Response {
+async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
+    };
+
     let conn = get_conn();
     let query = "SELECT * FROM authors";
     let mut statement = conn.prepare(query).unwrap();

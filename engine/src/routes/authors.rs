@@ -106,6 +106,8 @@ async fn post_author(
 }
 
 async fn delete_author(headers: HeaderMap, cookies: Cookies, Path(id): Path<Ulid>) -> Response {
+    // TODO: INTRODUCE CHECKING FOR LINES ASSOCIATED WITH AUTHOR
+    // AND DISALLOW DELETION IF ORPHANED LINES WOULD BE CREATED
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
         Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),

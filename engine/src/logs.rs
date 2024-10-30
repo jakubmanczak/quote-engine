@@ -40,6 +40,7 @@ pub enum LogEvent {
         new_perms: Vec<UserPermission>,
     },
     AuthorCreated(Author),
+    AuthorDeleted(Author),
 }
 
 impl LogEvent {

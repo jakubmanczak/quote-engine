@@ -11,6 +11,26 @@ export default function HomePage() {
         </div>
         <div className="flex flex-col gap-4">
           <h3 className="text-xl font-bold">{"Quick Stats"}</h3>
+          <div className="flex flex-col lg:flex-row gap-4">
+            <Card className="p-4 flex-1 text-center">
+              <CardTitle className="text-3xl font-bold font-sans">
+                <CardStat variant="quoteCount" />
+              </CardTitle>
+              {"quotes total"}
+            </Card>
+            <Card className="p-4 flex-1 text-center">
+              <CardTitle className="text-3xl font-bold font-sans">
+                <CardStat variant="authorCount" />
+              </CardTitle>
+              {"people quoted"}
+            </Card>
+            <Card className="p-4 flex-1 text-center">
+              <CardTitle className="text-3xl font-bold font-sans">
+                <CardStat variant="userCount" />
+              </CardTitle>
+              {"registered users"}
+            </Card>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
@@ -20,29 +40,9 @@ export default function HomePage() {
             </Card>
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
-                {"∞"}
-              </CardTitle>
-              {"curses, insults, and bad words"}
-            </Card>
-            <Card className="p-4 flex-1 text-center">
-              <CardTitle className="text-3xl font-bold font-sans">
                 {"..."}
               </CardTitle>
               {"users registered this week"}
-            </Card>
-          </div>
-          <div className="flex flex-col lg:flex-row gap-4">
-            <Card className="p-4 flex-1 text-center">
-              <CardTitle className="text-3xl font-bold font-sans">
-                <CardStat variant="quoteCount" />
-              </CardTitle>
-              {"quotes in the database"}
-            </Card>
-            <Card className="p-4 flex-1 text-center">
-              <CardTitle className="text-3xl font-bold font-sans">
-                <CardStat variant="userCount" />
-              </CardTitle>
-              {"registered users"}
             </Card>
           </div>
         </div>

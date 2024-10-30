@@ -9,7 +9,7 @@ use axum::{
     extract::Path,
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Json, Router,
 };
 use chrono::Utc;
@@ -24,6 +24,7 @@ pub fn exported_routes() -> Router {
         .route("/authors", get(get_authors))
         .route("/authors/count", get(get_authors_count))
         .route("/authors", post(post_author))
+        .route("/authors/:id", patch(patch_author))
         .route("/authors/:id", delete(delete_author))
 }
 
@@ -103,6 +104,90 @@ async fn post_author(
     });
 
     return Json(author).into_response();
+}
+
+#[derive(Deserialize)]
+struct PatchAuthor {
+    name: Option<String>,
+    obfname: Option<String>,
+}
+async fn patch_author(
+    headers: HeaderMap,
+    cookies: Cookies,
+    Path(id): Path<Ulid>,
+    Json(body): Json<PatchAuthor>,
+) -> Response {
+    let actor = match authenticate(&headers, cookies) {
+        Ok(user) => user,
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    };
+
+    match UserPermission::check_permission(&UserPermission::ModifyAuthorsNames, &actor.perms) {
+        true => (),
+        false => return StatusCode::FORBIDDEN.into_response(),
+    };
+
+    let subject = {
+        let conn = get_conn();
+        let query = "SELECT * FROM authors WHERE id = :id";
+        let mut st = conn.prepare(query).unwrap();
+        st.bind((":id", id.to_string().as_str())).unwrap();
+
+        match st.next() {
+            Ok(State::Row) => Author {
+                id: id,
+                name: st.read("name").unwrap(),
+                obfname: st.read("obfname").unwrap(),
+            },
+            Ok(State::Done) => {
+                return (StatusCode::BAD_REQUEST, "Author not found").into_response()
+            }
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        }
+    };
+
+    let n = match body.name {
+        Some(name) => name,
+        None => subject.name.clone(),
+    };
+    let o = match body.obfname {
+        Some(obfname) => obfname,
+        None => subject.obfname.clone(),
+    };
+    {
+        let conn = get_conn();
+        let query = "UPDATE authors SET name = :n, obfname = :o WHERE id = :id";
+        let mut st = conn.prepare(query).unwrap();
+        st.bind((":id", id.to_string().as_str())).unwrap();
+        st.bind((":n", n.as_str())).unwrap();
+        st.bind((":o", o.as_str())).unwrap();
+
+        match st.next() {
+            Ok(_) => (),
+            Err(e) => {
+                error!("could not update author: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    let new = Author {
+        id: id,
+        name: n,
+        obfname: o,
+    };
+    push_log(LogEntry {
+        id: Ulid::new(),
+        timestamp: Utc::now().timestamp(),
+        actor: actor.id,
+        action: LogEvent::AuthorUpdated {
+            old: subject,
+            new: new.clone(),
+        },
+        subject: id,
+    });
+
+    return Json(new).into_response();
 }
 
 async fn delete_author(headers: HeaderMap, cookies: Cookies, Path(id): Path<Ulid>) -> Response {

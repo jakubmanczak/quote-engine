@@ -41,6 +41,10 @@ pub enum LogEvent {
     },
     AuthorCreated(Author),
     AuthorDeleted(Author),
+    AuthorUpdated {
+        old: Author,
+        new: Author,
+    },
 }
 
 impl LogEvent {

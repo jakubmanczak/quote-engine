@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuPortal,
   DropdownMenuSub,
@@ -34,9 +33,9 @@ export default function Page() {
   const [authors, setAuthors] = useState<author[] | null>(null);
 
   const [dwiOpen, setDwiOpen] = useState<boolean>(false);
-  const [dwiAction, setDwiAction] = useState<"newauthor" | "delete">(
-    "newauthor"
-  );
+  const [dwiAction, setDwiAction] = useState<
+    "newauthor" | "delete" | "changename" | "changeobfname"
+  >("newauthor");
   const [workingAuthorId, setWorkingAuthorId] = useState<string>("");
   const [newName, setNewName] = useState<string>("");
   const [newObf, setNewObf] = useState<string>("");
@@ -93,6 +92,27 @@ export default function Page() {
     });
   };
 
+  const changeNames = async () => {
+    qfetch(`/authors/${workingAuthorId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: newName,
+        obfname: newObf,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        toast("Author updated.");
+      } else {
+        toast("Something went wrong...");
+      }
+      getAuthors();
+      setDwiOpen(false);
+    });
+  };
+
   useEffect(() => {
     getUser();
     getAuthors();
@@ -114,7 +134,17 @@ export default function Page() {
         <DialogDrawer
           open={dwiOpen}
           setOpen={setDwiOpen}
-          contentTitle="Add new author"
+          contentTitle={
+            dwiAction === "newauthor"
+              ? "Add new author"
+              : dwiAction === "delete"
+              ? "Delete author"
+              : dwiAction === "changename"
+              ? "Change author name"
+              : dwiAction === "changeobfname"
+              ? "Change author codename"
+              : "no string for this :("
+          }
         >
           <div className="flex flex-col gap-1 py-4">
             {dwiAction === "newauthor" && (
@@ -151,6 +181,36 @@ export default function Page() {
                 <Button variant={"destructive"} onClick={() => deleteAuthor()}>
                   {"Yes, really"}
                 </Button>
+              </>
+            )}
+            {dwiAction === "changename" && (
+              <>
+                <Label htmlFor="newname">Author name</Label>
+                <Input
+                  id="newname"
+                  type="text"
+                  value={newName}
+                  onChange={(e) => {
+                    setNewName(e.target.value);
+                  }}
+                  className="mb-4"
+                />
+                <Button onClick={() => changeNames()}>{"Submit"}</Button>
+              </>
+            )}
+            {dwiAction === "changeobfname" && (
+              <>
+                <Label htmlFor="obfname">Obfuscated name</Label>
+                <Input
+                  id="obfname"
+                  type="text"
+                  value={newObf}
+                  onChange={(e) => {
+                    setNewObf(e.target.value);
+                  }}
+                  className="mb-4"
+                />
+                <Button onClick={() => changeNames()}>{"Submit"}</Button>
               </>
             )}
           </div>
@@ -204,13 +264,37 @@ export default function Page() {
                           <DropdownMenuSubContent>
                             <DropdownMenuItem
                               className="cursor-pointer"
-                              disabled
+                              disabled={
+                                !(
+                                  user?.perms.includes("Everything") ||
+                                  user?.perms.includes("ModifyAuthorsNames")
+                                )
+                              }
+                              onClick={() => {
+                                setDwiAction("changename");
+                                setWorkingAuthorId(a.id);
+                                setNewName(a.name);
+                                setNewObf(a.obfname);
+                                setDwiOpen(true);
+                              }}
                             >
                               Modify name
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="cursor-pointer"
-                              disabled
+                              disabled={
+                                !(
+                                  user?.perms.includes("Everything") ||
+                                  user?.perms.includes("ModifyAuthorsNames")
+                                )
+                              }
+                              onClick={() => {
+                                setDwiAction("changeobfname");
+                                setWorkingAuthorId(a.id);
+                                setNewObf(a.obfname);
+                                setNewName(a.name);
+                                setDwiOpen(true);
+                              }}
                             >
                               Modify codename
                             </DropdownMenuItem>

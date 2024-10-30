@@ -13,8 +13,7 @@ pub enum UserPermission {
     MutateUsersPasswords,
     InspectLogs,
     CreateAuthors,
-    ChangeAuthorsName,
-    ChangeAuthorsObfuscatedName,
+    ModifyAuthorsNames,
     DeleteAuthors,
 
     // OTHER ENTITLEMENTS
@@ -59,9 +58,8 @@ impl UserPermission {
             InspectLogs => 0b1 << 7,
             DisplayFlower => 0b1 << 8,
             CreateAuthors => 0b1 << 9,
-            ChangeAuthorsName => 0b1 << 10,
-            ChangeAuthorsObfuscatedName => 0b1 << 11,
-            DeleteAuthors => 0b1 << 12,
+            DeleteAuthors => 0b1 << 10,
+            ModifyAuthorsNames => 0b1 << 11,
         }
     }
 }

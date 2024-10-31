@@ -72,11 +72,7 @@ export default function Page({ params }: { params: { id: string } }) {
 
   return (
     <Dashboard>
-      {!user && (
-        <h1 className="text-center">
-          {"You must be logged in to access this."}
-        </h1>
-      )}
+      {!user && <h1>{"You must be logged in to access this."}</h1>}
       {target === "invalid" && !!user && (
         <>
           <h1 className="text-center">{"No results for user id."}</h1>

@@ -6,7 +6,7 @@ import { qfetch } from "@/lib/qfetch";
 import { toast } from "sonner";
 import { DialogDrawer } from "./DialogDrawer";
 
-const CreateUser = (props: { userRefresh: () => void }) => {
+const CreateUser = (props: { userRefresh: () => void; disabled?: boolean }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [user, setUser] = useState<string>("");
   const [pass, setPass] = useState<string>("");
@@ -36,7 +36,11 @@ const CreateUser = (props: { userRefresh: () => void }) => {
     <DialogDrawer
       contentTitle="Adding a new user"
       contentDescr="Input their username and starting password here."
-      trigger={<Button variant={"outline"}>{"Add new user"}</Button>}
+      trigger={
+        <Button variant={"outline"} disabled={props.disabled}>
+          {"Add new user"}
+        </Button>
+      }
       open={open}
       setOpen={setOpen}
     >

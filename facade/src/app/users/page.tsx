@@ -212,15 +212,18 @@ export default function UsersPage() {
           </Button>
         </div>
       </DialogDrawer>
-      {fetchStat?.status === 200 && (
-        <div className="flex flex-row gap-4 items-center">
-          <p className="text-xl">Users</p>
-          {user?.perms.includes("CreateUsers") ||
-            (user?.perms.includes("Everything") && (
-              <CreateUser userRefresh={getUsers} />
-            ))}
-        </div>
-      )}
+      <div className="flex flex-row gap-4 items-center">
+        <p className="text-xl">Users</p>
+        <CreateUser
+          userRefresh={getUsers}
+          disabled={
+            !(
+              user?.perms.includes("Everything") ||
+              user?.perms.includes("CreateUsers")
+            )
+          }
+        />
+      </div>
       {fetchStat?.status === 200 && (
         <div className="flex flex-row flex-wrap gap-4">
           {userslist.map((u) => {
@@ -360,9 +363,7 @@ export default function UsersPage() {
       )}
       {fetchStat !== null && fetchStat.status !== 200 && (
         <>
-          <h1 className="text-2xl sm:text-4xl text-center">
-            {"You must be logged in to access this."}
-          </h1>
+          <h1>{"You must be logged in to access this."}</h1>
         </>
       )}
     </Dashboard>

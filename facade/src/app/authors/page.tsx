@@ -223,7 +223,7 @@ export default function Page() {
         </DialogDrawer>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {!user && <p>You must be logged in to see this content.</p>}
+        {!user && <p>{"You must be logged in to access this."}</p>}
         {!!authors &&
           authors.map((a) => {
             return (

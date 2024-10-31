@@ -360,7 +360,9 @@ export default function UsersPage() {
       )}
       {fetchStat !== null && fetchStat.status !== 200 && (
         <>
-          <h1 className="text-2xl sm:text-4xl text-center">{`${fetchStat.status} - ${fetchStat.statusText}`}</h1>
+          <h1 className="text-2xl sm:text-4xl text-center">
+            {"You must be logged in to access this."}
+          </h1>
         </>
       )}
     </Dashboard>

@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use chrono::Utc;
+use chrono::{Days, Utc};
 use serde::Deserialize;
 use sqlite::State;
 use tower_cookies::Cookies;
@@ -16,6 +16,7 @@ use crate::{auth::authenticate, db::get_conn, permissions::UserPermission};
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/quotes/count", get(get_quotes_count))
+        .route("/quotes/count/thisweek", get(get_quotes_thisweek_count))
         .route("/quotes", post(add_quote))
 }
 
@@ -33,6 +34,28 @@ async fn get_quotes_count() -> Response {
         }
         Err(e) => {
             error!("Error in GET /users/count: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    }
+}
+
+async fn get_quotes_thisweek_count() -> Response {
+    let conn = get_conn();
+    let query = "SELECT COUNT(*) FROM quotes WHERE timestamp > :ts";
+    let ts = match Utc::now().checked_sub_days(Days::new(7)) {
+        Some(dt) => dt.timestamp(),
+        None => return (StatusCode::INTERNAL_SERVER_ERROR, "dt minus 7d invalid").into_response(),
+    };
+    let mut statement = conn.prepare(query).unwrap();
+    statement.bind((":ts", ts)).unwrap();
+
+    match statement.next() {
+        Ok(_) => {
+            let c: i64 = statement.read(0).unwrap();
+            return c.to_string().into_response();
+        }
+        Err(e) => {
+            error!("Error in GET /users/count/thisweek: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     }

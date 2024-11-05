@@ -15,6 +15,7 @@ pub enum UserPermission {
     CreateAuthors,
     ModifyAuthorsNames,
     DeleteAuthors,
+    CreateQuotes,
 
     // OTHER ENTITLEMENTS
     DisplayFlower,
@@ -60,6 +61,7 @@ impl UserPermission {
             CreateAuthors => 0b1 << 9,
             DeleteAuthors => 0b1 << 10,
             ModifyAuthorsNames => 0b1 << 11,
+            CreateQuotes => 0b1 << 12,
         }
     }
 }

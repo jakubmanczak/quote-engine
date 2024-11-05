@@ -17,11 +17,11 @@ pub struct User {
 #[derive(Debug)]
 pub struct Quote {
     pub id: Ulid,
-    pub context: String,
-    pub timestamp: u64,
+    pub timestamp: i64,
+    pub context: Option<String>,
     // assembled from db
-    pub lines: Option<Vec<Line>>,
-    pub authors: Option<Vec<Author>>,
+    pub lines: Vec<Line>,
+    pub authors: Vec<Author>,
 }
 
 #[derive(Debug)]

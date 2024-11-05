@@ -34,7 +34,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row gap-4">
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
-                {"..."}
+                <CardStat variant="weeklyQuoteCount" />
               </CardTitle>
               {"quotes added this week"}
             </Card>

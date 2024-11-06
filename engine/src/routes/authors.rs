@@ -13,7 +13,7 @@ use axum::{
     Json, Router,
 };
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlite::State;
 use tower_cookies::Cookies;
 use tracing::error;
@@ -23,6 +23,10 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/authors", get(get_authors))
         .route("/authors/count", get(get_authors_count))
+        .route(
+            "/authors/:id/quote-line-counts",
+            get(get_authors_quoteline_counts),
+        )
         .route("/authors", post(post_author))
         .route("/authors/:id", patch(patch_author))
         .route("/authors/:id", delete(delete_author))
@@ -271,8 +275,53 @@ async fn get_authors_count() -> Response {
             return count.to_string().into_response();
         }
         Err(e) => {
-            error!("Error in GET /users/count: {e}");
+            error!("Error in GET /authors/count: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     }
+}
+
+#[derive(Serialize)]
+struct AuthorQuoteLine {
+    quotes: i64,
+    lines: i64,
+}
+async fn get_authors_quoteline_counts(Path(id): Path<Ulid>) -> Response {
+    let quotes: i64;
+    let lines: i64;
+
+    {
+        let conn = get_conn();
+        let query = "SELECT COUNT(*) FROM lines WHERE author = :a";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":a", id.to_string().as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => {
+                lines = statement.read(0).unwrap();
+            }
+            Err(e) => {
+                error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+    {
+        let conn = get_conn();
+        let query = "SELECT DISTINCT COUNT(quote, author) FROM lines WHERE author = :a";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":a", id.to_string().as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => {
+                quotes = statement.read(0).unwrap();
+            }
+            Err(e) => {
+                error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    return Json(AuthorQuoteLine { quotes, lines }).into_response();
 }

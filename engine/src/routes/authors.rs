@@ -23,6 +23,7 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/authors", get(get_authors))
         .route("/authors/count", get(get_authors_count))
+        .route("/authors/extended", get(get_extended_authors))
         .route("/authors/:id", get(get_author_by_id))
         .route("/authors/:id/extended", get(get_extended_author_by_id))
         .route(
@@ -32,6 +33,33 @@ pub fn exported_routes() -> Router {
         .route("/authors", post(post_author))
         .route("/authors/:id", patch(patch_author))
         .route("/authors/:id", delete(delete_author))
+}
+
+#[derive(Serialize)]
+struct ExtendedAuthor {
+    id: Ulid,
+    name: String,
+    obfname: String,
+    quotecount: i64,
+    linecount: i64,
+}
+
+#[derive(Deserialize)]
+struct CreateAuthor {
+    name: String,
+    obfname: String,
+}
+
+#[derive(Deserialize)]
+struct PatchAuthor {
+    name: Option<String>,
+    obfname: Option<String>,
+}
+
+#[derive(Serialize)]
+struct AuthorQuoteLine {
+    quotecount: i64,
+    linecount: i64,
 }
 
 async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
@@ -62,6 +90,87 @@ async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
     }
 }
 
+async fn get_extended_authors(headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Ok(_) => (),
+    };
+
+    let mut authors: Vec<ExtendedAuthor> = Vec::new();
+    {
+        let conn = get_conn();
+        let query = "SELECT * FROM authors";
+        let mut statement = conn.prepare(query).unwrap();
+
+        let mut tempauthors: Vec<Author> = Vec::new();
+
+        loop {
+            match statement.next() {
+                Ok(State::Row) => tempauthors.push(Author {
+                    id: ulid::Ulid::from_string(
+                        statement.read::<String, _>("id").unwrap().as_str(),
+                    )
+                    .unwrap(),
+                    name: statement.read("name").unwrap(),
+                    obfname: statement.read("obfname").unwrap(),
+                }),
+                Ok(State::Done) => break,
+                Err(err) => {
+                    error!("error on get extended authors: {}", err);
+                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                }
+            }
+        }
+
+        for author in tempauthors {
+            let quotecount: i64;
+            let linecount: i64;
+
+            let query = "SELECT COUNT(*) FROM lines WHERE author = :a";
+            let mut statement = conn.prepare(query).unwrap();
+            statement
+                .bind((":a", author.id.to_string().as_str()))
+                .unwrap();
+
+            match statement.next() {
+                Ok(_) => {
+                    linecount = statement.read(0).unwrap();
+                }
+                Err(e) => {
+                    error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                    return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+                }
+            }
+
+            let query = "SELECT COUNT(DISTINCT quote) FROM lines WHERE author = :a";
+            let mut statement = conn.prepare(query).unwrap();
+            statement
+                .bind((":a", author.id.to_string().as_str()))
+                .unwrap();
+
+            match statement.next() {
+                Ok(_) => {
+                    quotecount = statement.read(0).unwrap();
+                }
+                Err(e) => {
+                    error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                    return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+                }
+            }
+
+            authors.push(ExtendedAuthor {
+                id: author.id,
+                name: author.name,
+                obfname: author.obfname,
+                quotecount,
+                linecount,
+            });
+        }
+    }
+
+    return Json(authors).into_response();
+}
+
 async fn get_author_by_id(Path(id): Path<Ulid>, headers: HeaderMap, cookies: Cookies) -> Response {
     match authenticate(&headers, cookies) {
         Ok(_) => (),
@@ -88,14 +197,6 @@ async fn get_author_by_id(Path(id): Path<Ulid>, headers: HeaderMap, cookies: Coo
     }
 }
 
-#[derive(Serialize)]
-struct ExtendedAuthor {
-    id: Ulid,
-    name: String,
-    obfname: String,
-    quotecount: i64,
-    linecount: i64,
-}
 async fn get_extended_author_by_id(
     Path(id): Path<Ulid>,
     headers: HeaderMap,
@@ -170,12 +271,6 @@ async fn get_extended_author_by_id(
     .into_response();
 }
 
-#[derive(Deserialize)]
-struct CreateAuthor {
-    name: String,
-    obfname: String,
-}
-
 async fn post_author(
     headers: HeaderMap,
     cookies: Cookies,
@@ -225,11 +320,6 @@ async fn post_author(
     return Json(author).into_response();
 }
 
-#[derive(Deserialize)]
-struct PatchAuthor {
-    name: Option<String>,
-    obfname: Option<String>,
-}
 async fn patch_author(
     headers: HeaderMap,
     cookies: Cookies,
@@ -391,11 +481,6 @@ async fn get_authors_count() -> Response {
     }
 }
 
-#[derive(Serialize)]
-struct AuthorQuoteLine {
-    quotecount: i64,
-    linecount: i64,
-}
 async fn get_authors_quoteline_counts(Path(id): Path<Ulid>) -> Response {
     let quotes: i64;
     let lines: i64;

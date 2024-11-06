@@ -20,7 +20,7 @@ export default function HomePage() {
             </Card>
             <Card className="p-4 flex-1 text-center">
               <CardTitle className="text-3xl font-bold font-sans">
-                <CardStat variant="authorCount" />
+                <CardStat variant="quotedAuthorCount" />
               </CardTitle>
               {"people quoted"}
             </Card>

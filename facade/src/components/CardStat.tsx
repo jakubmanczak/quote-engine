@@ -4,7 +4,12 @@ import { qfetch } from "@/lib/qfetch";
 import { useEffect, useState } from "react";
 
 const CardStat = (props: {
-  variant: "quoteCount" | "weeklyQuoteCount" | "userCount" | "authorCount";
+  variant:
+    | "quoteCount"
+    | "weeklyQuoteCount"
+    | "userCount"
+    | "authorCount"
+    | "quotedAuthorCount";
 }) => {
   const [stat, setStat] = useState<string>("...");
   const getQuoteCount = async () => {
@@ -35,6 +40,13 @@ const CardStat = (props: {
       setStat(text);
     } else setStat("err");
   };
+  const getQuotedAuthorCount = async () => {
+    const res = await qfetch("/authors/quoted-count");
+    if (res.ok) {
+      const text = await res.text();
+      setStat(text);
+    } else setStat("err");
+  };
   useEffect(() => {
     switch (props.variant) {
       case "userCount":
@@ -48,6 +60,9 @@ const CardStat = (props: {
         break;
       case "authorCount":
         getAuthorCount();
+        break;
+      case "quotedAuthorCount":
+        getQuotedAuthorCount();
         break;
     }
   }, []);

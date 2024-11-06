@@ -23,6 +23,7 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/authors", get(get_authors))
         .route("/authors/count", get(get_authors_count))
+        .route("/authors/quoted-count", get(get_authors_quoted_count))
         .route("/authors/extended", get(get_extended_authors))
         .route("/authors/:id", get(get_author_by_id))
         .route("/authors/:id/extended", get(get_extended_author_by_id))
@@ -476,6 +477,22 @@ async fn get_authors_count() -> Response {
         }
         Err(e) => {
             error!("Error in GET /authors/count: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    }
+}
+
+async fn get_authors_quoted_count() -> Response {
+    let conn = get_conn();
+    let query = "SELECT COUNT(DISTINCT author) FROM lines";
+    let mut statement = conn.prepare(query).unwrap();
+    match statement.next() {
+        Ok(_) => {
+            let count: i64 = statement.read(0).unwrap();
+            return count.to_string().into_response();
+        }
+        Err(e) => {
+            error!("Error in GET /users/quoted-count: {e}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     }

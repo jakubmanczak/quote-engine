@@ -26,6 +26,8 @@ type author = {
   id: string;
   name: string;
   obfname: string;
+  quotecount: number;
+  linecount: number;
 };
 
 export default function Page() {
@@ -48,7 +50,7 @@ export default function Page() {
   };
 
   const getAuthors = async () => {
-    const res = await qfetch("/authors");
+    const res = await qfetch("/authors/extended");
     if (!res.ok) return;
     const authors = await res.json();
     console.log(authors);
@@ -238,13 +240,13 @@ export default function Page() {
                     <p className="uppercase font-semibold text-neutral-600">
                       {"quotes"}
                     </p>
-                    <h3 className="text-3xl">{"17"}</h3>
+                    <h3 className="text-3xl">{a.quotecount}</h3>
                   </div>
                   <div className="text-center w-full">
                     <p className="uppercase font-semibold text-neutral-600">
                       {"lines"}
                     </p>
-                    <h3 className="text-3xl">{"33"}</h3>
+                    <h3 className="text-3xl">{a.linecount}</h3>
                   </div>
                 </div>
                 <div className="pt-2 flex flex-row gap-2 w-full">

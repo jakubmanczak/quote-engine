@@ -23,6 +23,8 @@ pub fn exported_routes() -> Router {
     Router::new()
         .route("/authors", get(get_authors))
         .route("/authors/count", get(get_authors_count))
+        .route("/authors/:id", get(get_author_by_id))
+        .route("/authors/:id/extended", get(get_extended_author_by_id))
         .route(
             "/authors/:id/quote-line-counts",
             get(get_authors_quoteline_counts),
@@ -58,6 +60,114 @@ async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
             }
         }
     }
+}
+
+async fn get_author_by_id(Path(id): Path<Ulid>, headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
+        Ok(_) => (),
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    };
+
+    let conn = get_conn();
+    let query = "SELECT * FROM authors WHERE id = :id";
+    let mut statement = conn.prepare(query).unwrap();
+    statement.bind((":id", id.to_string().as_str())).unwrap();
+
+    match statement.next() {
+        Ok(State::Row) => Json(Author {
+            id: id,
+            name: statement.read("name").unwrap(),
+            obfname: statement.read("obfname").unwrap(),
+        })
+        .into_response(),
+        Ok(State::Done) => (StatusCode::BAD_REQUEST, "No such author found.").into_response(),
+        Err(e) => {
+            error!("Error in getauthorbyid: {e}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct ExtendedAuthor {
+    id: Ulid,
+    name: String,
+    obfname: String,
+    quotecount: i64,
+    linecount: i64,
+}
+async fn get_extended_author_by_id(
+    Path(id): Path<Ulid>,
+    headers: HeaderMap,
+    cookies: Cookies,
+) -> Response {
+    match authenticate(&headers, cookies) {
+        Ok(_) => (),
+        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+    };
+
+    let name: String;
+    let obfname: String;
+    let quotecount: i64;
+    let linecount: i64;
+
+    {
+        let conn = get_conn();
+        let query = "SELECT * FROM authors WHERE id = :id";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":id", id.to_string().as_str())).unwrap();
+
+        match statement.next() {
+            Ok(State::Row) => {
+                name = statement.read("name").unwrap();
+                obfname = statement.read("obfname").unwrap();
+            }
+            Ok(State::Done) => {
+                return (StatusCode::BAD_REQUEST, "No such author found.").into_response()
+            }
+            Err(e) => {
+                error!("Error in getauthorbyid: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+
+        let query = "SELECT COUNT(*) FROM lines WHERE author = :a";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":a", id.to_string().as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => {
+                linecount = statement.read(0).unwrap();
+            }
+            Err(e) => {
+                error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+
+        let query = "SELECT COUNT(DISTINCT quote) FROM lines WHERE author = :a";
+        let mut statement = conn.prepare(query).unwrap();
+        statement.bind((":a", id.to_string().as_str())).unwrap();
+
+        match statement.next() {
+            Ok(_) => {
+                quotecount = statement.read(0).unwrap();
+            }
+            Err(e) => {
+                error!("Error in GET /authors/:id/quote-line-counts: {e}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+            }
+        }
+    }
+
+    return (Json(ExtendedAuthor {
+        id,
+        name,
+        obfname,
+        quotecount,
+        linecount,
+    }))
+    .into_response();
 }
 
 #[derive(Deserialize)]
@@ -283,8 +393,8 @@ async fn get_authors_count() -> Response {
 
 #[derive(Serialize)]
 struct AuthorQuoteLine {
-    quotes: i64,
-    lines: i64,
+    quotecount: i64,
+    linecount: i64,
 }
 async fn get_authors_quoteline_counts(Path(id): Path<Ulid>) -> Response {
     let quotes: i64;
@@ -308,7 +418,7 @@ async fn get_authors_quoteline_counts(Path(id): Path<Ulid>) -> Response {
     }
     {
         let conn = get_conn();
-        let query = "SELECT DISTINCT COUNT(quote, author) FROM lines WHERE author = :a";
+        let query = "SELECT COUNT(DISTINCT quote) FROM lines WHERE author = :a";
         let mut statement = conn.prepare(query).unwrap();
         statement.bind((":a", id.to_string().as_str())).unwrap();
 
@@ -323,5 +433,9 @@ async fn get_authors_quoteline_counts(Path(id): Path<Ulid>) -> Response {
         }
     }
 
-    return Json(AuthorQuoteLine { quotes, lines }).into_response();
+    return Json(AuthorQuoteLine {
+        quotecount: quotes,
+        linecount: lines,
+    })
+    .into_response();
 }

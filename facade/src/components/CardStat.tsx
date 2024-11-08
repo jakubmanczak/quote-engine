@@ -7,6 +7,7 @@ const CardStat = (props: {
   variant:
     | "quoteCount"
     | "weeklyQuoteCount"
+    | "monthlyQuoteCount"
     | "userCount"
     | "authorCount"
     | "quotedAuthorCount";
@@ -21,6 +22,13 @@ const CardStat = (props: {
   };
   const getWeeklyQuoteCount = async () => {
     const res = await qfetch("/quotes/count/thisweek");
+    if (res.ok) {
+      const text = await res.text();
+      setStat(text);
+    } else setStat("err");
+  };
+  const getMonthlyQuoteCount = async () => {
+    const res = await qfetch("/quotes/count/thismonth");
     if (res.ok) {
       const text = await res.text();
       setStat(text);
@@ -57,6 +65,9 @@ const CardStat = (props: {
         break;
       case "weeklyQuoteCount":
         getWeeklyQuoteCount();
+        break;
+      case "monthlyQuoteCount":
+        getMonthlyQuoteCount();
         break;
       case "authorCount":
         getAuthorCount();

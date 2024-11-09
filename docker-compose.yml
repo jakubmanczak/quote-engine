@@ -18,6 +18,8 @@ services:
   facade:
     build:
       context: ./facade/
+      args:
+        - NEXT_PUBLIC_SERVER_PATH=${NEXT_PUBLIC_SERVER_PATH}
     ports:
       - "20190:3000"
     restart: always

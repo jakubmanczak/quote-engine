@@ -3,12 +3,16 @@ import { qfetch } from "@/lib/qfetch";
 import { cookies } from "next/headers";
 
 export default async function LogsPage() {
+  // THIS DOESN'T REVALIDATE ON LOGOUT
+  // OR LIKE EVER, ACTUALLY
+  // TODO: FIX THIS
   const cookiestore = cookies();
   const qauth = cookiestore.get("qauth")?.value;
   const res = await qfetch("/logs?limit=200&page=1", {
-    cache: "no-cache",
+    cache: "no-store",
     headers: {
       Cookie: `qauth=${qauth}`,
+      "Cache-Control": "no-store",
     },
   });
   const logs: {
@@ -16,7 +20,7 @@ export default async function LogsPage() {
     timestamp: number;
     actor: string;
     subject: string;
-    action: { [actionType: string]: unknown };
+    action: { [actionType: string]: unknown } | string;
   }[] = res.ok && (await res.json());
   return (
     <Dashboard>
@@ -26,8 +30,8 @@ export default async function LogsPage() {
           const [actionType, actionDetails] = Object.entries(log.action)[0];
           return (
             <div key={log.id}>
-              {actionType} <br />
-              {JSON.stringify(actionDetails)}
+              {typeof log.action === "string" ? log.action : actionType} <br />
+              {typeof log.action !== "string" && JSON.stringify(actionDetails)}
             </div>
           );
         })}

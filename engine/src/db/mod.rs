@@ -1,5 +1,6 @@
 use sqlite::{Connection, State};
 use std::env;
+use tables::TABLES;
 use tracing::{error, trace};
 
 mod create_default_admin;
@@ -44,10 +45,6 @@ pub fn check_for_lack_of_account() {
 }
 
 pub fn execute_migration_queries() {
-    use tables::*;
-
     let conn = get_conn();
-    for table in [USERS, LOGS, AUTHORS, LINES, QUOTES] {
-        conn.execute(table).unwrap();
-    }
+    conn.execute(TABLES).unwrap();
 }

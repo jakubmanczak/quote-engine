@@ -31,7 +31,11 @@ export default async function LogsPage() {
           return (
             <div key={log.id}>
               {typeof log.action === "string" ? log.action : actionType} <br />
-              {typeof log.action !== "string" && JSON.stringify(actionDetails)}
+              {typeof log.action !== "string" && (
+                <pre className="bg-black/5 p-4 rounded-lg">
+                  {JSON.stringify(actionDetails, null, 2)}
+                </pre>
+              )}
             </div>
           );
         })}

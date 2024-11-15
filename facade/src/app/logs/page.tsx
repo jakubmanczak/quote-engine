@@ -32,7 +32,7 @@ export default async function LogsPage() {
             <div key={log.id}>
               {typeof log.action === "string" ? log.action : actionType} <br />
               {typeof log.action !== "string" && (
-                <pre className="bg-black/5 p-4 rounded-lg">
+                <pre className="bg-black/5 p-4 rounded-lg text-[12px]">
                   {JSON.stringify(actionDetails, null, 2)}
                 </pre>
               )}

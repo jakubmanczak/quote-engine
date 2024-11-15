@@ -2,6 +2,8 @@ import { Dashboard } from "@/components/Dashboard";
 import { qfetch } from "@/lib/qfetch";
 import { cookies } from "next/headers";
 
+const dynamic = "force-dynamic";
+
 export default async function LogsPage() {
   // THIS DOESN'T REVALIDATE ON LOGOUT
   // OR LIKE EVER, ACTUALLY
@@ -12,7 +14,9 @@ export default async function LogsPage() {
     cache: "no-store",
     headers: {
       Cookie: `qauth=${qauth}`,
-      "Cache-Control": "no-store",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
   const logs: {

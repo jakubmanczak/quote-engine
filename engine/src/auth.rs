@@ -1,6 +1,6 @@
+use crate::db::get_conn;
 use crate::db::users::{get_user_data, GetUserDataInput};
 use crate::models::User;
-use crate::{db::get_conn, error::Error};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::http::header::AUTHORIZATION;
 use axum::http::HeaderMap;
@@ -14,18 +14,25 @@ use tracing::info;
 
 pub const AUTH_COOKIE_NAME: &str = "qauth";
 
-const NO_AUTH_HEADER_FOUND: &str = "No Authorization header found";
-const NO_AUTH_SCHEME_DATA: &str = "Could not get scheme, data from Authorization header";
-const NO_BASIC_COLON_SPLIT: &str = "Could not split Authorization header Basic data colon-wise.";
-const NO_USER_IN_DATABASE: &str = "Could not find matching user";
-const NO_PARSE_PHC_STRING: &str = "Could not parse PHC string as password hash";
-const NO_PASSWORD_MATCH: &str = "Password incorrect.";
-const UNSUPPORTED_AUTH_SCHEME: &str = "Unsupported authorization scheme";
-// const NO_COOKIE: &str = "No quoteauth cookie found.";
-const NEITHER_HEADER_NOR_COOKIE: &str = "Neither an Authorization header nor a cookie were found.";
-// const COOKIE_NO_SECURE: &str = "qauth cookie is not marked as Secure";
-// const COOKIE_NO_HTTPONLY: &str = "quath cookie is not marked as HttpOnly";
-// const COOKIE_NO_SECURE_NO_HTTPONLY: &str = "quath cookie is not marked as Secure or HttpOnly";
+#[derive(thiserror::Error, Debug)]
+pub enum AuthenticationError {
+    #[error("Invalid credentials.")]
+    InvalidCredentials,
+    #[error("No authorization data: provide cookie or header.")]
+    NoAuthProvided,
+    #[error("Bad AUTHORIZATION header: could not parse scheme/data.")]
+    NoHeaderAuthSchemeData,
+    #[error("Non-ASCII characters found in AUTHORIZATION header.")]
+    NonAsciiHeaderCharacters,
+    #[error("Could not split Authorization header Basic data colon-wise.")]
+    NoBasicAuthColonSplit,
+    #[error("Unsupported authorization scheme.")]
+    UnsupportedAuthScheme,
+    #[error("Could not parse password PHC string.")]
+    NoParsePHC,
+    #[error("Database error.")]
+    DatabaseError,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonWebTokenClaims {
@@ -34,7 +41,7 @@ pub struct JsonWebTokenClaims {
     pub sub: String,
 }
 
-pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, Error> {
+pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, anyhow::Error> {
     let auth_cookie = cookies
         .get(AUTH_COOKIE_NAME)
         .is_some_and(|c| !c.value().is_empty());
@@ -63,11 +70,11 @@ pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, Error
 
             authenticate_via_jwt(cookie)
         }
-        (false, false) => Err(Error::RequestAuthError(NEITHER_HEADER_NOR_COOKIE.into())),
+        (false, false) => Err(AuthenticationError::NoAuthProvided)?,
     }
 }
 
-pub fn authenticate_via_jwt(jwt: String) -> Result<User, Error> {
+pub fn authenticate_via_jwt(jwt: String) -> Result<User, anyhow::Error> {
     let token = decode::<JsonWebTokenClaims>(
         &jwt,
         &DecodingKey::from_secret(env::var("SECRET").unwrap().as_bytes()),
@@ -79,14 +86,14 @@ pub fn authenticate_via_jwt(jwt: String) -> Result<User, Error> {
     Ok(user)
 }
 
-pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, Error> {
+pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, anyhow::Error> {
     let authstr = match headers.get(AUTHORIZATION) {
         Some(header) => String::from_utf8(header.as_bytes().to_vec())?,
-        None => return Err(Error::RequestAuthError(NO_AUTH_HEADER_FOUND.into())),
+        None => unreachable!(),
     };
     let (scheme, data) = match authstr.split_once(' ') {
         Some(parts) => parts,
-        None => return Err(Error::RequestAuthError(NO_AUTH_SCHEME_DATA.into())),
+        None => return Err(AuthenticationError::NoHeaderAuthSchemeData)?,
     };
 
     match scheme {
@@ -94,7 +101,7 @@ pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, Error> {
             let (user, password) =
                 match String::from_utf8(BASE64_STANDARD.decode(data)?)?.split_once(':') {
                     Some((user, password)) => (user.to_string(), password.to_string()),
-                    None => return Err(Error::RequestAuthError(NO_BASIC_COLON_SPLIT.into())),
+                    None => return Err(AuthenticationError::NoBasicAuthColonSplit)?,
                 };
             let hashstr: String = {
                 let conn = get_conn();
@@ -104,10 +111,8 @@ pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, Error> {
 
                 match statement.next() {
                     Ok(State::Row) => statement.read("pass").unwrap(),
-                    Ok(State::Done) => {
-                        return Err(Error::RequestAuthError(NO_USER_IN_DATABASE.into()))
-                    }
-                    Err(e) => return Err(Error::SqliteError(e)),
+                    Ok(State::Done) => return Err(AuthenticationError::InvalidCredentials)?,
+                    Err(e) => return Err(AuthenticationError::DatabaseError)?,
                 }
             };
             let argon = Argon2::default();
@@ -115,15 +120,15 @@ pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, Error> {
                 Ok(h) => h,
                 Err(e) => {
                     info!("Could not parse database PHC string as password hash: {e}");
-                    return Err(Error::RequestAuthError(NO_PARSE_PHC_STRING.into()));
+                    return Err(AuthenticationError::NoParsePHC)?;
                 }
             };
 
             match argon.verify_password(password.as_bytes(), &hash).is_ok() {
-                true => return get_user_data(GetUserDataInput::Name(user)),
-                false => return Err(Error::RequestAuthError(NO_PASSWORD_MATCH.into())),
+                true => return Ok(get_user_data(GetUserDataInput::Name(user))?),
+                false => return Err(AuthenticationError::InvalidCredentials)?,
             }
         }
-        _ => Err(Error::RequestAuthError(UNSUPPORTED_AUTH_SCHEME.into())),
+        _ => Err(AuthenticationError::UnsupportedAuthScheme)?,
     }
 }

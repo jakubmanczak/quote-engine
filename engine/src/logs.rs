@@ -1,6 +1,5 @@
 use crate::{
     db::get_conn,
-    error::Error,
     models::{Author, User},
     permissions::UserPermission,
 };
@@ -47,11 +46,17 @@ pub enum LogEvent {
     },
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum LogError {
+    #[error("Could not serve variant as string")]
+    LogVariantSerializeError,
+}
+
 impl LogEvent {
-    pub fn as_json(&self) -> Result<String, Error> {
+    pub fn as_json(&self) -> Result<String, anyhow::Error> {
         Ok(serde_json::to_string(self)?)
     }
-    pub fn variant_as_str(&self) -> Result<String, Error> {
+    pub fn variant_as_str(&self) -> Result<String, anyhow::Error> {
         let json = serde_json::to_string(self)?;
         match json.contains("{") {
             true => {
@@ -63,14 +68,14 @@ impl LogEvent {
                     Some(str) => str,
                     None => {
                         error!("Could not serve variant as string");
-                        return Err(Error::LogVariantSerializeError("--".into()));
+                        return Err(LogError::LogVariantSerializeError)?;
                     }
                 };
                 let two = match one.strip_suffix("\"") {
                     Some(str) => str,
                     None => {
                         error!("Could not serve variant as string");
-                        return Err(Error::LogVariantSerializeError("--".into()));
+                        return Err(LogError::LogVariantSerializeError)?;
                     }
                 };
 

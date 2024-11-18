@@ -267,8 +267,8 @@ async fn patch_user(
     let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
         Ok(user) => user,
         Err(e) => match e {
-            crate::error::Error::NoRowsError(str) => {
-                return (StatusCode::BAD_REQUEST, str).into_response();
+            crate::db::users::GetUserDataError::NoSuchUserFound(_) => {
+                return (StatusCode::BAD_REQUEST, "").into_response();
             }
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
         },

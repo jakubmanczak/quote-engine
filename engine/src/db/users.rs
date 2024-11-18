@@ -1,17 +1,30 @@
 use super::get_conn;
 use crate::models::User;
-use crate::{error::Error, permissions::UserPermission};
+use crate::permissions::UserPermission;
 use sqlite::{State, Statement};
+use strum::Display;
 use tracing::error;
 use ulid::Ulid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Display)]
 pub enum GetUserDataInput {
     Id(String),
     Name(String),
 }
 
-pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
+#[derive(thiserror::Error, Debug)]
+pub enum GetUserDataError {
+    #[error("Could not get u32 from i64 (reading permission bits)")]
+    I64ToU32ConversionFault,
+    #[error("No user \"{0}\" found")]
+    NoSuchUserFound(String),
+    #[error("Sqlite error")]
+    SqliteError,
+    #[error("Ulid from string conversion fault: {0}")]
+    UlidReadFault(String),
+}
+
+pub fn get_user_data(data: GetUserDataInput) -> Result<User, GetUserDataError> {
     let conn = get_conn();
     let mut st: Statement;
     match data.clone() {
@@ -30,28 +43,24 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
     match st.next() {
         Ok(State::Row) => {
             return Ok(User {
-                id: Ulid::from_string(st.read::<String, _>("id").unwrap().as_str())?,
+                id: match Ulid::from_string(st.read::<String, _>("id").unwrap().as_str()) {
+                    Ok(id) => id,
+                    Err(e) => return Err(GetUserDataError::UlidReadFault(e.to_string())),
+                },
                 name: st.read("name").unwrap(),
                 color: st.read("color").unwrap(),
                 picture: st.read("picture").unwrap(),
                 perms: UserPermission::get_permissions_from_bits(
                     match u32::try_from(st.read::<i64, _>("permissions").unwrap()) {
                         Ok(u) => u,
-                        Err(e) => {
-                            let res = format!("Could not get u32 from i64: {e}");
-                            return Err(Error::GetUserDataError(res));
-                        }
+                        Err(e) => return Err(GetUserDataError::I64ToU32ConversionFault),
                     },
                 ),
             });
         }
-        Ok(State::Done) => {
-            let res = format!("No user of {:?} found.", data);
-            return Err(Error::NoRowsError(res));
-        }
+        Ok(State::Done) => return Err(GetUserDataError::NoSuchUserFound(data.to_string())),
         Err(e) => {
-            error!("sqlite err in getuserdata: {e}");
-            return Err(Error::SqliteError(e));
+            return Err(GetUserDataError::SqliteError);
         }
     }
 }

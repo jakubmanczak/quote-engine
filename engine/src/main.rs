@@ -12,7 +12,6 @@ use tracing::error;
 
 mod auth;
 mod db;
-mod error;
 mod logs;
 mod models;
 mod permissions;

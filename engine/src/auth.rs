@@ -1,18 +1,19 @@
 use crate::db::get_conn;
 use crate::db::users::{get_user_data, GetUserDataInput};
+use crate::error::Error;
 use crate::models::User;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::http::header::AUTHORIZATION;
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, StatusCode};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use jsonwebtoken::{decode, DecodingKey, Validation};
-use serde::{Deserialize, Serialize};
+use chrono::{Duration, Utc};
+use rand::Rng;
 use sqlite::State;
-use std::env;
 use tower_cookies::Cookies;
-use tracing::info;
+use ulid::Ulid;
 
 pub const AUTH_COOKIE_NAME: &str = "qauth";
+pub const AUTH_SESSION_LENGTH: Duration = Duration::weeks(2);
 
 #[derive(thiserror::Error, Debug)]
 pub enum AuthenticationError {
@@ -32,103 +33,181 @@ pub enum AuthenticationError {
     NoParsePHC,
     #[error("Database error.")]
     DatabaseError,
+    #[error("Session expired.")]
+    SessionExpired,
+    #[error("Unable to represent expiry date in i64.")]
+    UnableToCreateExpiry,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JsonWebTokenClaims {
-    pub exp: i64,
-    pub iat: i64,
-    pub sub: String,
-}
-
-pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, anyhow::Error> {
-    let auth_cookie = cookies
-        .get(AUTH_COOKIE_NAME)
-        .is_some_and(|c| !c.value().is_empty());
-    let auth_header = headers.get(AUTHORIZATION).is_some();
-
-    match (auth_header, auth_cookie) {
-        (true, _) => authenticate_via_basicauth(headers),
-        (false, true) => {
-            let cookie = match cookies.get(AUTH_COOKIE_NAME) {
-                Some(c) => c.value().to_string(),
-                None => unreachable!(),
-                // TODO: this doesn't work
-                // Some(c) => match (c.http_only(), c.secure()) {
-                //     (Some(true), Some(true)) => c.value().to_string(),
-                //     (Some(false) | None, Some(true)) => {
-                //         return Err(Error::RequestAuthError(COOKIE_NO_HTTPONLY.into()))
-                //     }
-                //     (Some(true), Some(false) | None) => {
-                //         return Err(Error::RequestAuthError(COOKIE_NO_SECURE.into()))
-                //     }
-                //     (Some(false) | None, Some(false) | None) => {
-                //         return Err(Error::RequestAuthError(COOKIE_NO_SECURE_NO_HTTPONLY.into()))
-                //     }
-                // },
-            };
-
-            authenticate_via_jwt(cookie)
+impl AuthenticationError {
+    pub fn suggested_status_code(&self) -> StatusCode {
+        use AuthenticationError::*;
+        match self {
+            InvalidCredentials | SessionExpired => StatusCode::UNAUTHORIZED,
+            NoParsePHC | DatabaseError | UnableToCreateExpiry => StatusCode::INTERNAL_SERVER_ERROR,
+            NoAuthProvided
+            | NoHeaderAuthSchemeData
+            | NonAsciiHeaderCharacters
+            | NoBasicAuthColonSplit
+            | UnsupportedAuthScheme => StatusCode::BAD_REQUEST,
         }
-        (false, false) => Err(AuthenticationError::NoAuthProvided)?,
     }
 }
 
-pub fn authenticate_via_jwt(jwt: String) -> Result<User, anyhow::Error> {
-    let token = decode::<JsonWebTokenClaims>(
-        &jwt,
-        &DecodingKey::from_secret(env::var("SECRET").unwrap().as_bytes()),
-        &Validation::default(),
-    )?;
-
-    let user = get_user_data(GetUserDataInput::Id(token.claims.sub))?;
-
-    Ok(user)
-}
-
-pub fn authenticate_via_basicauth(headers: &HeaderMap) -> Result<User, anyhow::Error> {
-    let authstr = match headers.get(AUTHORIZATION) {
-        Some(header) => String::from_utf8(header.as_bytes().to_vec())?,
-        None => unreachable!(),
+pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, Error> {
+    let cookie = match cookies.get(AUTH_COOKIE_NAME) {
+        Some(cookie) => match !cookie.value().is_empty() {
+            true => Some(cookie.value().to_string()),
+            false => None,
+        },
+        None => None,
     };
-    let (scheme, data) = match authstr.split_once(' ') {
-        Some(parts) => parts,
-        None => return Err(AuthenticationError::NoHeaderAuthSchemeData)?,
+    let header = match headers.get(AUTHORIZATION) {
+        Some(header) => Some(match header.to_str() {
+            Ok(str) => str.to_string(),
+            Err(_) => return Err(AuthenticationError::NonAsciiHeaderCharacters)?,
+        }),
+        None => None,
     };
 
-    match scheme {
-        "Basic" => {
-            let (user, password) =
-                match String::from_utf8(BASE64_STANDARD.decode(data)?)?.split_once(':') {
-                    Some((user, password)) => (user.to_string(), password.to_string()),
-                    None => return Err(AuthenticationError::NoBasicAuthColonSplit)?,
-                };
-            let hashstr: String = {
-                let conn = get_conn();
-                let q = "SELECT pass FROM users WHERE name = :name";
-                let mut statement = conn.prepare(q).unwrap();
-                statement.bind((":name", user.as_str())).unwrap();
-
-                match statement.next() {
-                    Ok(State::Row) => statement.read("pass").unwrap(),
-                    Ok(State::Done) => return Err(AuthenticationError::InvalidCredentials)?,
-                    Err(e) => return Err(AuthenticationError::DatabaseError)?,
-                }
+    match (cookie, header) {
+        (_, Some(header)) => {
+            let (scheme, data) = match header.split_once(' ') {
+                Some((a, b)) => (a, b),
+                None => return Err(AuthenticationError::NoHeaderAuthSchemeData)?,
             };
-            let argon = Argon2::default();
-            let hash = match PasswordHash::new(hashstr.as_str()) {
-                Ok(h) => h,
-                Err(e) => {
-                    info!("Could not parse database PHC string as password hash: {e}");
-                    return Err(AuthenticationError::NoParsePHC)?;
-                }
-            };
-
-            match argon.verify_password(password.as_bytes(), &hash).is_ok() {
-                true => return Ok(get_user_data(GetUserDataInput::Name(user))?),
-                false => return Err(AuthenticationError::InvalidCredentials)?,
+            match scheme {
+                "Basic" => validate_user_base64_credentials(data.to_string()),
+                "Bearer" => validate_user_session(data.to_string()),
+                _ => return Err(AuthenticationError::UnsupportedAuthScheme)?,
             }
         }
-        _ => Err(AuthenticationError::UnsupportedAuthScheme)?,
+        (Some(cookie), None) => validate_user_session(cookie),
+        (None, None) => Err(AuthenticationError::NoAuthProvided)?,
+    }
+}
+
+pub fn validate_user_base64_credentials(credentials: String) -> Result<User, Error> {
+    let (usr, pwd) = match String::from_utf8(BASE64_STANDARD.decode(credentials)?)?.split_once(":")
+    {
+        Some((user, password)) => (user.to_string(), password.to_string()),
+        None => return Err(AuthenticationError::NoBasicAuthColonSplit)?,
+    };
+
+    validate_user_credentials(usr, pwd)
+}
+
+pub fn validate_user_credentials(username: String, password: String) -> Result<User, Error> {
+    let hashstr: String = {
+        let conn = get_conn();
+        let q = "SELECT pass FROM users WHERE name = :name";
+        let mut statement = conn.prepare(q).unwrap();
+        statement.bind((":name", username.as_str())).unwrap();
+
+        match statement.next() {
+            Ok(State::Row) => statement.read("pass").unwrap(),
+            Ok(State::Done) => return Err(AuthenticationError::InvalidCredentials)?,
+            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+        }
+    };
+    let argon = Argon2::default();
+    let hash = match PasswordHash::new(hashstr.as_str()) {
+        Ok(h) => h,
+        Err(e) => return Err(AuthenticationError::NoParsePHC)?,
+    };
+
+    match argon.verify_password(password.as_bytes(), &hash).is_ok() {
+        true => get_user_data(GetUserDataInput::Name(username)),
+        false => Err(AuthenticationError::InvalidCredentials)?,
+    }
+}
+
+pub fn validate_user_session(token: String) -> Result<User, Error> {
+    let now = Utc::now().timestamp();
+    let (id, userid, expiry) = {
+        let conn = get_conn();
+        let q = "SELECT id, user, expiry FROM sessions WHERE token = :token";
+        let mut st = conn.prepare(q).unwrap();
+        st.bind((":token", token.as_str())).unwrap();
+
+        let id: String;
+        let userid: String;
+        let expiry: i64;
+        match st.next() {
+            Ok(State::Row) => {
+                id = st.read("id").unwrap();
+                expiry = st.read("expiry").unwrap();
+                userid = st.read("user").unwrap();
+                if now >= expiry {
+                    return Err(AuthenticationError::SessionExpired)?;
+                }
+                (id, userid, expiry)
+            }
+            Ok(State::Done) => return Err(AuthenticationError::SessionExpired)?,
+            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+        }
+    };
+
+    let expiry = match Utc::now().checked_add_signed(AUTH_SESSION_LENGTH) {
+        Some(a) => a.timestamp(),
+        None => return Err(AuthenticationError::UnableToCreateExpiry)?,
+    };
+
+    {
+        let conn = get_conn();
+        let q = "UPDATE sessions SET expiry = :expiry WHERE id = :id";
+        let mut st = conn.prepare(q).unwrap();
+        st.bind((":expiry", expiry)).unwrap();
+        st.bind((":id", id.as_str())).unwrap();
+
+        match st.next() {
+            Ok(_) => (),
+            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+        }
+    };
+
+    get_user_data(GetUserDataInput::Id(userid))
+}
+
+pub fn create_user_session(user: Ulid) -> Result<String, Error> {
+    let id = Ulid::new();
+    let now = Utc::now();
+    let issued = now.timestamp();
+    let expiry = match now.checked_add_signed(AUTH_SESSION_LENGTH) {
+        Some(a) => a.timestamp(),
+        None => return Err(AuthenticationError::UnableToCreateExpiry)?,
+    };
+
+    let mut rng = rand::thread_rng();
+    let token: [u8; 32] = rng.gen();
+    let token = String::from(BASE64_STANDARD.encode(token));
+
+    let conn = get_conn();
+    let q = "INSERT INTO sessions VALUES (:id, :token, :user, :issued, :expiry, :lastaccess)";
+    let mut statement = conn.prepare(q).unwrap();
+    statement.bind((":id", id.to_string().as_str())).unwrap();
+    statement.bind((":token", token.as_str())).unwrap();
+    statement
+        .bind((":user", user.to_string().as_str()))
+        .unwrap();
+    statement.bind((":issued", issued)).unwrap();
+    statement.bind((":expiry", expiry)).unwrap();
+    statement.bind((":lastaccess", issued)).unwrap();
+
+    match statement.next() {
+        Ok(_) => Ok(token),
+        Err(e) => return Err(AuthenticationError::DatabaseError)?,
+    }
+}
+
+pub fn destroy_user_session(token: String) -> Result<(), Error> {
+    let conn = get_conn();
+    let q = "DELETE FROM sessions WHERE token = :token";
+    let mut st = conn.prepare(q).unwrap();
+    st.bind((":token", token.as_str())).unwrap();
+
+    match st.next() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(AuthenticationError::DatabaseError)?,
     }
 }

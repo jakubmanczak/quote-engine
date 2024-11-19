@@ -2,8 +2,9 @@ use crate::{
     auth::authenticate,
     db::{
         get_conn,
-        users::{get_user_data, GetUserDataInput},
+        users::{get_user_data, GetUserDataError, GetUserDataInput},
     },
+    error::Error,
     logs::{push_log, LogEntry, LogEvent},
     models::{User, DEFAULT_COLOR},
     permissions::{UserPermission, DEFAULT_PERMISSIONS},
@@ -267,7 +268,7 @@ async fn patch_user(
     let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
         Ok(user) => user,
         Err(e) => match e {
-            crate::db::users::GetUserDataError::NoSuchUserFound(_) => {
+            Error::GetUserDataError(GetUserDataError::NoSuchUserFound(_)) => {
                 return (StatusCode::BAD_REQUEST, "").into_response();
             }
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

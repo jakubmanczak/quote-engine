@@ -1,48 +1,46 @@
-use crate::{
-    auth::{authenticate, JsonWebTokenClaims, AUTH_COOKIE_NAME},
-    db::{
-        get_conn,
-        users::{get_user_data, GetUserDataInput},
-    },
+use crate::auth::{
+    authenticate, create_user_session, destroy_user_session, validate_user_credentials,
+    AUTH_COOKIE_NAME,
 };
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::Deserialize;
-use sqlite::State;
-use std::env;
-use tower_cookies::{cookie::SameSite::Strict, Cookie, Cookies};
-use tracing::info;
+use tower_cookies::{Cookie, Cookies};
 
 pub fn exported_routes() -> Router {
     Router::new()
-        .route("/auth/check", get(check_login))
-        .route("/users/self", get(check_login))
-        .route("/auth/login", post(login))
-        .route("/auth/clear", get(clear_auth))
+        .route("/auth/login", post(auth_login))
+        .route("/auth/clear", get(auth_clear))
+        .route("/auth/check", get(auth_check))
+        .route("/users/self", get(auth_check))
 }
 
-async fn check_login(headers: HeaderMap, cookies: Cookies) -> Response {
+async fn auth_check(headers: HeaderMap, cookies: Cookies) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Err(e) => match e {
+            crate::error::Error::AuthenticationError(err) => {
+                return (err.suggested_status_code(), err.to_string()).into_response()
+            }
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+        },
     };
-
-    return Json(actor).into_response();
+    Json(actor).into_response()
 }
 
-async fn clear_auth(cookies: Cookies) -> Response {
-    let c = Cookie::build(AUTH_COOKIE_NAME)
-        .removal()
-        .http_only(true)
-        .path("/")
-        .build();
+async fn auth_clear(headers: HeaderMap, cookies: Cookies) -> Response {
+    if cookies.get(AUTH_COOKIE_NAME).is_some() {
+        match destroy_user_session(cookies.get(AUTH_COOKIE_NAME).unwrap().value().to_string()) {
+            Ok(_) => (),
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+        }
+    }
+
+    let c = Cookie::build(AUTH_COOKIE_NAME).removal().path("/").build();
     cookies.add(c);
 
     StatusCode::OK.into_response()
@@ -53,69 +51,30 @@ struct UserLoginCredentials {
     username: String,
     password: String,
 }
-async fn login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Response {
-    const INCORRECT_CREDENTIALS: &str = "Incorrect credentials.";
-    let hashstr: String = {
-        let conn = get_conn();
-        let q = "SELECT pass FROM users WHERE name = :name";
-        let mut statement = conn.prepare(q).unwrap();
-        statement.bind((":name", body.username.as_str())).unwrap();
-
-        match statement.next() {
-            Ok(State::Row) => statement.read("pass").unwrap(),
-            Ok(State::Done) => {
-                return (StatusCode::UNAUTHORIZED, INCORRECT_CREDENTIALS).into_response()
+async fn auth_login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) -> Response {
+    let user = match validate_user_credentials(body.username, body.password) {
+        Ok(u) => u,
+        Err(e) => match e {
+            crate::error::Error::AuthenticationError(err) => {
+                return (err.suggested_status_code(), err.to_string()).into_response()
             }
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-        }
-    };
-    let argon = Argon2::default();
-    let hash = match PasswordHash::new(hashstr.as_str()) {
-        Ok(h) => h,
-        Err(e) => {
-            info!("Could not parse database PHC string as password hash: {e}");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Could not parse phc string from db",
-            )
-                .into_response();
-        }
-    };
-
-    let actor = match argon
-        .verify_password(body.password.as_bytes(), &hash)
-        .is_ok()
-    {
-        true => match get_user_data(GetUserDataInput::Name(body.username)) {
-            Ok(actor) => actor,
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         },
-        false => return (StatusCode::UNAUTHORIZED, INCORRECT_CREDENTIALS).into_response(),
     };
 
-    let claims = JsonWebTokenClaims {
-        exp: (Utc::now() + Duration::weeks(2)).timestamp(),
-        iat: Utc::now().timestamp(),
-        sub: actor.id.to_string(),
-    };
-
-    let token = match encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(env::var("SECRET").unwrap().as_bytes()),
-    ) {
+    let token = match create_user_session(user.id) {
         Ok(token) => token,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
     };
 
-    let c = Cookie::build((AUTH_COOKIE_NAME, token.clone()))
+    let c = Cookie::build((AUTH_COOKIE_NAME, token))
         .max_age(tower_cookies::cookie::time::Duration::weeks(2))
         .http_only(true)
         .path("/")
-        .same_site(Strict)
-        // .secure(true)
+        .same_site(tower_cookies::cookie::SameSite::Strict)
+        .secure(true)
         .build();
-
     cookies.add(c);
-    return token.into_response();
+
+    return StatusCode::OK.into_response();
 }

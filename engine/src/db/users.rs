@@ -1,6 +1,6 @@
 use super::get_conn;
-use crate::models::User;
 use crate::permissions::UserPermission;
+use crate::{error::Error, models::User};
 use sqlite::{State, Statement};
 use strum::Display;
 use tracing::error;
@@ -24,7 +24,7 @@ pub enum GetUserDataError {
     UlidReadFault(String),
 }
 
-pub fn get_user_data(data: GetUserDataInput) -> Result<User, GetUserDataError> {
+pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
     let conn = get_conn();
     let mut st: Statement;
     match data.clone() {
@@ -45,7 +45,7 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, GetUserDataError> {
             return Ok(User {
                 id: match Ulid::from_string(st.read::<String, _>("id").unwrap().as_str()) {
                     Ok(id) => id,
-                    Err(e) => return Err(GetUserDataError::UlidReadFault(e.to_string())),
+                    Err(e) => return Err(GetUserDataError::UlidReadFault(e.to_string()))?,
                 },
                 name: st.read("name").unwrap(),
                 color: st.read("color").unwrap(),
@@ -53,14 +53,14 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, GetUserDataError> {
                 perms: UserPermission::get_permissions_from_bits(
                     match u32::try_from(st.read::<i64, _>("permissions").unwrap()) {
                         Ok(u) => u,
-                        Err(e) => return Err(GetUserDataError::I64ToU32ConversionFault),
+                        Err(e) => return Err(GetUserDataError::I64ToU32ConversionFault)?,
                     },
                 ),
             });
         }
-        Ok(State::Done) => return Err(GetUserDataError::NoSuchUserFound(data.to_string())),
+        Ok(State::Done) => return Err(GetUserDataError::NoSuchUserFound(data.to_string()))?,
         Err(e) => {
-            return Err(GetUserDataError::SqliteError);
+            return Err(GetUserDataError::SqliteError)?;
         }
     }
 }

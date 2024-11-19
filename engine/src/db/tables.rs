@@ -13,7 +13,7 @@ pub static TABLES: &str = "
         user        TEXT NOT NULL,
         issued      INTEGER NOT NULL,
         expiry      INTEGER NOT NULL,
-        lastlogin   INTEGER NOT NULL
+        lastaccess   INTEGER NOT NULL
         -- ^^ potentially expand with valid access ip list,
         -- login geolocation etc.
     );

@@ -1,5 +1,6 @@
 use crate::{
     db::get_conn,
+    error::Error,
     models::{Author, User},
     permissions::UserPermission,
 };
@@ -53,10 +54,10 @@ pub enum LogError {
 }
 
 impl LogEvent {
-    pub fn as_json(&self) -> Result<String, anyhow::Error> {
+    pub fn as_json(&self) -> Result<String, Error> {
         Ok(serde_json::to_string(self)?)
     }
-    pub fn variant_as_str(&self) -> Result<String, anyhow::Error> {
+    pub fn variant_as_str(&self) -> Result<String, Error> {
         let json = serde_json::to_string(self)?;
         match json.contains("{") {
             true => {

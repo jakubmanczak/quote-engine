@@ -1,3 +1,5 @@
+use core::ascii;
+
 use axum::{
     http::{
         header::{AUTHORIZATION, CONTENT_TYPE},
@@ -5,6 +7,8 @@ use axum::{
     },
     Router,
 };
+use base64::{encode, prelude::BASE64_STANDARD, Engine};
+use rand::Rng;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
 use tower_http::cors::CorsLayer;
@@ -12,6 +16,7 @@ use tracing::error;
 
 mod auth;
 mod db;
+mod error;
 mod logs;
 mod models;
 mod permissions;

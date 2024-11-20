@@ -47,4 +47,5 @@ pub fn check_for_lack_of_account() {
 pub fn execute_migration_queries() {
     let conn = get_conn();
     conn.execute(TABLES).unwrap();
+    conn.execute("PRAGMA journal_mode = WAL;").unwrap();
 }

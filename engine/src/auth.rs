@@ -9,7 +9,7 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{Duration, Utc};
 use rand::Rng;
 use sqlite::State;
-use tower_cookies::Cookies;
+use tower_cookies::{Cookie, Cookies};
 use ulid::Ulid;
 
 pub const AUTH_COOKIE_NAME: &str = "qauth";
@@ -78,11 +78,33 @@ pub fn authenticate(headers: &HeaderMap, cookies: Cookies) -> Result<User, Error
             };
             match scheme {
                 "Basic" => validate_user_base64_credentials(data.to_string()),
-                "Bearer" => validate_user_session(data.to_string()),
+                "Bearer" => {
+                    let user = validate_user_session(data.to_string())?;
+                    let c = Cookie::build((AUTH_COOKIE_NAME, data.to_string()))
+                        .max_age(tower_cookies::cookie::time::Duration::weeks(2))
+                        .http_only(true)
+                        .path("/")
+                        .same_site(tower_cookies::cookie::SameSite::Strict)
+                        .secure(true)
+                        .build();
+                    cookies.add(c);
+                    return Ok(user);
+                }
                 _ => return Err(AuthenticationError::UnsupportedAuthScheme)?,
             }
         }
-        (Some(cookie), None) => validate_user_session(cookie),
+        (Some(cookie), None) => {
+            let user = validate_user_session(cookie.clone())?;
+            let c = Cookie::build((AUTH_COOKIE_NAME, cookie))
+                .max_age(tower_cookies::cookie::time::Duration::weeks(2))
+                .http_only(true)
+                .path("/")
+                .same_site(tower_cookies::cookie::SameSite::Strict)
+                .secure(true)
+                .build();
+            cookies.add(c);
+            return Ok(user);
+        }
         (None, None) => Err(AuthenticationError::NoAuthProvided)?,
     }
 }

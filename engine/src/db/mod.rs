@@ -1,7 +1,7 @@
 use sqlite::{Connection, State};
 use std::env;
 use tables::TABLES;
-use tracing::{error, trace};
+use tracing::{error, info, trace};
 
 mod create_default_admin;
 mod tables;
@@ -20,13 +20,23 @@ pub fn get_conn() -> Connection {
         }
     };
 
-    match sqlite::open(path) {
+    let mut conn = match sqlite::open(path) {
         Ok(conn) => conn,
         Err(e) => {
             error!("error establishing sqlite db conn: {e}");
             panic!();
         }
-    }
+    };
+
+    match conn.set_busy_timeout(100) {
+        Ok(_) => (),
+        Err(err) => trace!(
+            "Could not set db connection timeout! Requests may err due to db lock ({})",
+            err.to_string()
+        ),
+    };
+
+    conn
 }
 
 pub fn check_for_lack_of_account() {
@@ -47,5 +57,8 @@ pub fn check_for_lack_of_account() {
 pub fn execute_migration_queries() {
     let conn = get_conn();
     conn.execute(TABLES).unwrap();
-    conn.execute("PRAGMA journal_mode = WAL;").unwrap();
+    match conn.execute("PRAGMA journal_mode = WAL;") {
+        Ok(_) => info!("WAL mode set"),
+        Err(_) => info!("Could not set WAL mode - requests may err!"),
+    }
 }

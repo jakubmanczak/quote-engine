@@ -22,12 +22,7 @@ pub fn exported_routes() -> Router {
 async fn auth_check(headers: HeaderMap, cookies: Cookies) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => match e {
-            crate::error::Error::AuthenticationError(err) => {
-                return (err.suggested_status_code(), err.to_string()).into_response()
-            }
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
-        },
+        Err(e) => return e.log_and_response(),
     };
     Json(actor).into_response()
 }

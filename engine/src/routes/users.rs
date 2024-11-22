@@ -43,8 +43,8 @@ pub fn exported_routes() -> Router {
 
 async fn get_users(headers: HeaderMap, cookies: Cookies) -> Response {
     match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
+        Err(e) => return e.log_and_response(),
     };
 
     let conn = get_conn();
@@ -83,8 +83,8 @@ async fn get_users(headers: HeaderMap, cookies: Cookies) -> Response {
 
 async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
     match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
+        Err(e) => return e.log_and_response(),
     };
 
     let conn = get_conn();
@@ -121,8 +121,8 @@ async fn get_user_by_id(headers: HeaderMap, cookies: Cookies, Path(id): Path<Str
 
 async fn get_user_pic(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
     match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
+        Err(e) => return e.log_and_response(),
     };
 
     let conn = get_conn();
@@ -179,7 +179,7 @@ async fn post_users(
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::CreateUsers, &actor.perms) {
@@ -262,7 +262,7 @@ async fn patch_user(
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     let subject = match get_user_data(GetUserDataInput::Id(id.clone())) {
@@ -414,7 +414,7 @@ async fn patch_user_password(
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     let id = match Ulid::from_string(id.as_str()) {
@@ -481,7 +481,7 @@ async fn patch_user_password(
 async fn delete_user(headers: HeaderMap, cookies: Cookies, Path(id): Path<String>) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::DeleteUsers, &actor.perms) {

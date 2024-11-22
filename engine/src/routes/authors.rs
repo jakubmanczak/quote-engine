@@ -65,8 +65,8 @@ struct AuthorQuoteLine {
 
 async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
     match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
+        Err(e) => return e.log_and_response(),
     };
 
     let conn = get_conn();
@@ -93,8 +93,8 @@ async fn get_authors(headers: HeaderMap, cookies: Cookies) -> Response {
 
 async fn get_extended_authors(headers: HeaderMap, cookies: Cookies) -> Response {
     match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(_) => (),
+        Err(e) => return e.log_and_response(),
     };
 
     let mut authors: Vec<ExtendedAuthor> = Vec::new();
@@ -175,7 +175,7 @@ async fn get_extended_authors(headers: HeaderMap, cookies: Cookies) -> Response 
 async fn get_author_by_id(Path(id): Path<Ulid>, headers: HeaderMap, cookies: Cookies) -> Response {
     match authenticate(&headers, cookies) {
         Ok(_) => (),
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     let conn = get_conn();
@@ -205,7 +205,7 @@ async fn get_extended_author_by_id(
 ) -> Response {
     match authenticate(&headers, cookies) {
         Ok(_) => (),
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     let name: String;
@@ -279,7 +279,7 @@ async fn post_author(
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::CreateAuthors, &actor.perms) {
@@ -329,7 +329,7 @@ async fn patch_author(
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::ModifyAuthorsNames, &actor.perms) {
@@ -405,7 +405,7 @@ async fn delete_author(headers: HeaderMap, cookies: Cookies, Path(id): Path<Ulid
     // AND DISALLOW DELETION IF ORPHANED LINES WOULD BE CREATED
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::DeleteAuthors, &actor.perms) {

@@ -100,8 +100,8 @@ async fn add_quote(
     Json(body): Json<CreateQuote>,
 ) -> Response {
     let actor = match authenticate(&headers, cookies) {
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
         Ok(actor) => actor,
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::CreateQuotes, &actor.perms) {

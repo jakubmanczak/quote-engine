@@ -21,7 +21,7 @@ pub fn exported_routes() -> Router {
 async fn logs_route(headers: HeaderMap, Query(p): Query<Pagination>, cookies: Cookies) -> Response {
     let actor = match authenticate(&headers, cookies) {
         Ok(user) => user,
-        Err(e) => return (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     match UserPermission::check_permission(&UserPermission::InspectLogs, &actor.perms) {

@@ -43,10 +43,9 @@ impl AuthenticationError {
     pub fn suggested_status_code(&self) -> StatusCode {
         use AuthenticationError::*;
         match self {
-            InvalidCredentials | SessionExpired => StatusCode::UNAUTHORIZED,
+            NoAuthProvided | InvalidCredentials | SessionExpired => StatusCode::UNAUTHORIZED,
             NoParsePHC | DatabaseError | UnableToCreateExpiry => StatusCode::INTERNAL_SERVER_ERROR,
-            NoAuthProvided
-            | NoHeaderAuthSchemeData
+            NoHeaderAuthSchemeData
             | NonAsciiHeaderCharacters
             | NoBasicAuthColonSplit
             | UnsupportedAuthScheme => StatusCode::BAD_REQUEST,

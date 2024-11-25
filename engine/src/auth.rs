@@ -29,8 +29,8 @@ pub enum AuthenticationError {
     NoBasicAuthColonSplit,
     #[error("Unsupported authorization scheme.")]
     UnsupportedAuthScheme,
-    #[error("Could not parse password PHC string.")]
-    NoParsePHC,
+    #[error("Could not parse password PHC string ({0})")]
+    NoParsePHC(String),
     #[error("Database error.")]
     DatabaseError,
     #[error("Session expired.")]
@@ -44,7 +44,9 @@ impl AuthenticationError {
         use AuthenticationError::*;
         match self {
             NoAuthProvided | InvalidCredentials | SessionExpired => StatusCode::UNAUTHORIZED,
-            NoParsePHC | DatabaseError | UnableToCreateExpiry => StatusCode::INTERNAL_SERVER_ERROR,
+            NoParsePHC(_) | DatabaseError | UnableToCreateExpiry => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             NoHeaderAuthSchemeData
             | NonAsciiHeaderCharacters
             | NoBasicAuthColonSplit
@@ -134,7 +136,7 @@ pub fn validate_user_credentials(username: String, password: String) -> Result<U
     let argon = Argon2::default();
     let hash = match PasswordHash::new(hashstr.as_str()) {
         Ok(h) => h,
-        Err(e) => return Err(AuthenticationError::NoParsePHC)?,
+        Err(e) => return Err(AuthenticationError::NoParsePHC(e.to_string()))?,
     };
 
     match argon.verify_password(password.as_bytes(), &hash).is_ok() {

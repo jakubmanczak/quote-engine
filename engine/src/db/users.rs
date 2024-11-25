@@ -14,8 +14,8 @@ pub enum GetUserDataInput {
 
 #[derive(thiserror::Error, Debug)]
 pub enum GetUserDataError {
-    #[error("Could not get u32 from i64 (reading permission bits)")]
-    I64ToU32ConversionFault,
+    #[error("Could not get u32 from i64 (reading permission bits: {0})")]
+    I64ToU32ConversionFault(String),
     #[error("No user \"{0}\" found")]
     NoSuchUserFound(String),
     #[error("Sqlite error")]
@@ -53,13 +53,16 @@ pub fn get_user_data(data: GetUserDataInput) -> Result<User, Error> {
                 perms: UserPermission::get_permissions_from_bits(
                     match u32::try_from(st.read::<i64, _>("permissions").unwrap()) {
                         Ok(u) => u,
-                        Err(e) => return Err(GetUserDataError::I64ToU32ConversionFault)?,
+                        Err(e) => {
+                            return Err(GetUserDataError::I64ToU32ConversionFault(e.to_string()))?
+                        }
                     },
                 ),
             });
         }
         Ok(State::Done) => return Err(GetUserDataError::NoSuchUserFound(data.to_string()))?,
         Err(e) => {
+            error!("SqliteErr: {}", e);
             return Err(GetUserDataError::SqliteError)?;
         }
     }

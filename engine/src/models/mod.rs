@@ -14,24 +14,24 @@ pub struct User {
     pub perms: Vec<UserPermission>,
 }
 
-#[derive(Debug)]
-pub struct Quote {
-    pub id: Ulid,
-    pub timestamp: i64,
-    pub context: Option<String>,
-    // assembled from db
-    pub lines: Vec<Line>,
-    pub authors: Vec<Author>,
-}
-
-#[derive(Debug)]
-pub struct Line {
-    pub id: Ulid,
-    pub content: String,
-    pub position: u8,
-    pub quote: String,
-    pub author: String,
-}
+// #[derive(Debug)]
+// pub struct Quote {
+//     pub id: Ulid,
+//     pub timestamp: i64,
+//     pub context: Option<String>,
+//     // assembled from db
+//     pub lines: Vec<Line>,
+//     pub authors: Vec<Author>,
+// }
+//
+// #[derive(Debug)]
+// pub struct Line {
+//     pub id: Ulid,
+//     pub content: String,
+//     pub position: u8,
+//     pub quote: String,
+//     pub author: String,
+// }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Author {

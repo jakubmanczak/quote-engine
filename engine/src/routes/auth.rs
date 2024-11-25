@@ -27,11 +27,12 @@ async fn auth_check(headers: HeaderMap, cookies: Cookies) -> Response {
     Json(actor).into_response()
 }
 
-async fn auth_clear(headers: HeaderMap, cookies: Cookies) -> Response {
+async fn auth_clear(cookies: Cookies) -> Response {
+    // TODO: also destroy sessions referenced in AUTHORIZATION header
     if cookies.get(AUTH_COOKIE_NAME).is_some() {
         match destroy_user_session(cookies.get(AUTH_COOKIE_NAME).unwrap().value().to_string()) {
             Ok(_) => (),
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            Err(e) => return e.log_and_response(),
         }
     }
 
@@ -59,7 +60,7 @@ async fn auth_login(cookies: Cookies, Json(body): Json<UserLoginCredentials>) ->
 
     let token = match create_user_session(user.id) {
         Ok(token) => token,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+        Err(e) => return e.log_and_response(),
     };
 
     let c = Cookie::build((AUTH_COOKIE_NAME, token))

@@ -10,6 +10,7 @@ use chrono::{Duration, Utc};
 use rand::Rng;
 use sqlite::State;
 use tower_cookies::{Cookie, Cookies};
+use tracing::error;
 use ulid::Ulid;
 
 pub const AUTH_COOKIE_NAME: &str = "qauth";
@@ -130,7 +131,10 @@ pub fn validate_user_credentials(username: String, password: String) -> Result<U
         match statement.next() {
             Ok(State::Row) => statement.read("pass").unwrap(),
             Ok(State::Done) => return Err(AuthenticationError::InvalidCredentials)?,
-            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+            Err(e) => {
+                error!("Database Error in createusersession: {}", e);
+                return Err(AuthenticationError::DatabaseError)?;
+            }
         }
     };
     let argon = Argon2::default();
@@ -147,7 +151,7 @@ pub fn validate_user_credentials(username: String, password: String) -> Result<U
 
 pub fn validate_user_session(token: String) -> Result<User, Error> {
     let now = Utc::now().timestamp();
-    let (id, userid, expiry) = {
+    let (id, userid) = {
         let conn = get_conn();
         let q = "SELECT id, user, expiry FROM sessions WHERE token = :token";
         let mut st = conn.prepare(q).unwrap();
@@ -164,10 +168,13 @@ pub fn validate_user_session(token: String) -> Result<User, Error> {
                 if now >= expiry {
                     return Err(AuthenticationError::SessionExpired)?;
                 }
-                (id, userid, expiry)
+                (id, userid)
             }
             Ok(State::Done) => return Err(AuthenticationError::SessionExpired)?,
-            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+            Err(e) => {
+                error!("Database Error in createusersession: {}", e);
+                return Err(AuthenticationError::DatabaseError)?;
+            }
         }
     };
 
@@ -185,7 +192,10 @@ pub fn validate_user_session(token: String) -> Result<User, Error> {
 
         match st.next() {
             Ok(_) => (),
-            Err(e) => return Err(AuthenticationError::DatabaseError)?,
+            Err(e) => {
+                error!("Database Error in createusersession: {}", e);
+                return Err(AuthenticationError::DatabaseError)?;
+            }
         }
     };
 
@@ -219,7 +229,10 @@ pub fn create_user_session(user: Ulid) -> Result<String, Error> {
 
     match statement.next() {
         Ok(_) => Ok(token),
-        Err(e) => return Err(AuthenticationError::DatabaseError)?,
+        Err(e) => {
+            error!("Database Error in createusersession: {}", e);
+            Err(AuthenticationError::DatabaseError)?
+        }
     }
 }
 

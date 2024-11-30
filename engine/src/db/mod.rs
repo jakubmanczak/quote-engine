@@ -6,6 +6,7 @@ use tracing::{error, info, trace};
 mod create_default_admin;
 mod tables;
 
+pub mod queries;
 pub mod users;
 
 pub fn get_conn() -> Connection {

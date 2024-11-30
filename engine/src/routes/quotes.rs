@@ -7,17 +7,24 @@ use axum::{
 use chrono::{Days, Months, Utc};
 use serde::Deserialize;
 use sqlite::State;
+use std::collections::HashMap;
 use tower_cookies::Cookies;
 use tracing::error;
 use ulid::Ulid;
 
-use crate::{auth::authenticate, db::get_conn, permissions::UserPermission};
+use crate::{
+    auth::authenticate,
+    db::{self, get_conn},
+    models::{Author, Line, Quote},
+    permissions::UserPermission,
+};
 
 pub fn exported_routes() -> Router {
     Router::new()
         .route("/quotes/count", get(get_quotes_count))
         .route("/quotes/count/thisweek", get(get_quotes_thisweek_count))
         .route("/quotes/count/thismonth", get(get_quotes_thismonth_count))
+        .route("/quotes", get(get_quotes))
         .route("/quotes", post(add_quote))
 }
 
@@ -82,6 +89,70 @@ async fn get_quotes_thismonth_count() -> Response {
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     }
+}
+
+async fn get_quotes(headers: HeaderMap, cookies: Cookies) -> Response {
+    match authenticate(&headers, cookies) {
+        Ok(_) => (),
+        Err(e) => return e.log_and_response(),
+    };
+
+    let mut quotes_map: HashMap<String, Quote> = HashMap::new();
+    {
+        let conn = get_conn();
+        let query = db::queries::ALL_QUOTES_QUERY;
+        let mut st = conn.prepare(query).unwrap();
+        loop {
+            match st.next() {
+                Ok(State::Row) => {
+                    let quoteid: String = st.read("quote_id").unwrap();
+                    let timestamp: i64 = st.read("timestamp").unwrap();
+                    let context: Option<String> = st.read("context").ok();
+
+                    let lineid: String = st.read("line_id").unwrap();
+                    let linecontent: String = st.read("line_content").unwrap();
+                    let linepos = u8::try_from(st.read::<i64, _>("linepos").unwrap()).unwrap();
+
+                    let author_id: String = st.read("author_id").unwrap();
+                    let author = Author {
+                        id: Ulid::from_string(&author_id).unwrap(),
+                        name: st.read("author_name").unwrap(),
+                        obfname: st.read("author_obfname").unwrap(),
+                    };
+
+                    let line = Line {
+                        id: Ulid::from_string(&lineid).unwrap(),
+                        content: linecontent,
+                        position: linepos,
+                        quote: lineid.clone(),
+                        author: author_id,
+                    };
+
+                    let quote = quotes_map.entry(quoteid.clone()).or_insert_with(|| Quote {
+                        id: Ulid::from_string(&quoteid).unwrap(),
+                        timestamp,
+                        context: context.clone(),
+                        lines: Vec::new(),
+                        authors: Vec::new(),
+                    });
+
+                    quote.lines.push(line);
+
+                    if !quote.authors.iter().any(|a| a.id == author.id) {
+                        quote.authors.push(author);
+                    }
+                }
+                Ok(State::Done) => break,
+                Err(e) => {
+                    error!("Error in db st.next() access -> {}", e);
+                    return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+                }
+            }
+        }
+    };
+
+    return Json(quotes_map.into_values().collect::<Vec<Quote>>()).into_response();
+    // return Json(quotes_map).into_response();
 }
 
 #[derive(Deserialize)]

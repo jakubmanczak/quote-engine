@@ -1,26 +1,19 @@
-use axum::{routing::get, Router};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
+use sqlx::{Pool, Sqlite};
 
-mod auth;
-mod authors;
-mod lines;
-mod logs;
-mod permissions;
-mod quotes;
-mod users;
-
-pub fn routes() -> Router {
+pub fn all() -> Router<Pool<Sqlite>> {
     Router::new()
-        .route("/", get(healthcheck))
-        .route("/live", get(healthcheck))
-        .route("/health", get(healthcheck))
-        .merge(auth::exported_routes())
-        .merge(users::exported_routes())
-        .merge(permissions::exported_routes())
-        .merge(logs::exported_routes())
-        .merge(quotes::exported_routes())
-        .merge(lines::exported_routes())
-        .merge(authors::exported_routes())
+        // HEALTH CHECKS
+        .route("/", get(twohundred))
+        .route("/health", get(twohundred))
+        .route("/live", get(twohundred))
 }
 
-// 200 OK
-async fn healthcheck() -> () {}
+async fn twohundred() -> Response {
+    StatusCode::OK.into_response()
+}

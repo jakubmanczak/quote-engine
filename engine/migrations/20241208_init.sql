@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS users (
     id          TEXT NOT NULL UNIQUE PRIMARY KEY,
     name        TEXT NOT NULL UNIQUE,
     pass        TEXT NOT NULL,
-    permissions INTEGER NOT NULL,
+    clearance   INTEGER NOT NULL,
+    attributes  INTEGER NOT NULL,
     color       TEXT NOT NULL,
     picture     TEXT NOT NULL
 );
@@ -26,8 +27,9 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 CREATE TABLE IF NOT EXISTS quotes (
     id          TEXT NOT NULL UNIQUE PRIMARY KEY,
-    timestamp   INTEGER,
-    context     TEXT DEFAULT NULL
+    clearance   INTEGER NOT NULL,
+    context     TEXT DEFAULT NULL,
+    timestamp   INTEGER
 );
 CREATE TABLE IF NOT EXISTS lines (
     id          TEXT NOT NULL UNIQUE PRIMARY KEY,
@@ -44,6 +46,7 @@ CREATE TABLE IF NOT EXISTS authors (
     id          TEXT NOT NULL UNIQUE PRIMARY KEY,
     name        TEXT NOT NULL,
     obfname     TEXT NOT NULL
+    -- ^^ hidden name, or codename
 );
 
 -- „Willard Van Orman Quine... to był filozof z mojej młodości, tj. z czasów kiedyśmy ze sfinksem chodzili do przedszkola...”

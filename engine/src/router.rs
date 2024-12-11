@@ -12,6 +12,7 @@ use crate::{routes, setup};
 
 pub async fn init() -> Router {
     let pool = setup::init_database_pool().await;
+
     let origins = ["http://localhost:3000"];
     Router::new()
         .merge(routes::all())

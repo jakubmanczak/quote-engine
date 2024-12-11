@@ -1,6 +1,9 @@
+mod auth;
+mod error;
 mod router;
 mod routes;
 mod setup;
+mod users;
 
 #[tokio::main]
 async fn main() {

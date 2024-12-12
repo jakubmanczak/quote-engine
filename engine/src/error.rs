@@ -1,3 +1,4 @@
+use crate::auth::error::AuthenticationError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -10,6 +11,8 @@ pub enum OmniError {
     SqlxError(#[from] sqlx::Error),
     #[error("{0}")]
     UlidDecodeError(#[from] ulid::DecodeError),
+    #[error("{0}")]
+    AuthError(#[from] AuthenticationError),
 }
 
 impl OmniError {
@@ -25,6 +28,14 @@ impl OmniError {
                 const ERRTEXT: &str = "Ulid decode error";
                 error!("{ERRTEXT}: {e}");
                 (StatusCode::INTERNAL_SERVER_ERROR, ERRTEXT).into_response()
+            }
+            AuthError(e) => {
+                const ERRTEXT: &str = "Authentication error";
+                match e.suggested_status_code() {
+                    StatusCode::INTERNAL_SERVER_ERROR => error!("{ERRTEXT}: {e}"),
+                    _ => (),
+                };
+                (e.suggested_status_code(), format!("{ERRTEXT}: {e}")).into_response()
             }
         }
     }

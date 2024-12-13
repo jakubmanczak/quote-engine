@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, patch, post},
+    routing::get,
     Json, Router,
 };
 use sqlx::{Pool, Sqlite};
@@ -12,10 +12,13 @@ use crate::authors::{Author, AuthorUpdate};
 
 pub fn routes() -> Router<Pool<Sqlite>> {
     Router::new()
-        .route("/authors", get(get_authors))
-        .route("/authors", post(post_author))
-        .route("/authors/:id", get(get_author_by_id))
-        .route("/authors/:id", patch(patch_author_by_id))
+        .route("/authors", get(get_authors).post(post_author))
+        .route(
+            "/authors/:id",
+            get(get_author_by_id)
+                .patch(patch_author_by_id)
+                .delete(delete_author_by_id),
+        )
         .route("/authors/count", get(get_authors_count))
 }
 
@@ -60,6 +63,13 @@ async fn patch_author_by_id(
             Some(author) => (StatusCode::OK, Json(author)).into_response(),
             None => (StatusCode::NOT_FOUND, "No such author found").into_response(),
         },
+        Err(e) => e.log_and_respond(),
+    }
+}
+
+async fn delete_author_by_id(Path(id): Path<Ulid>, State(pool): State<Pool<Sqlite>>) -> Response {
+    match Author::delete(id, &pool).await {
+        Ok(_) => (StatusCode::NO_CONTENT).into_response(),
         Err(e) => e.log_and_respond(),
     }
 }

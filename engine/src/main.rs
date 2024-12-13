@@ -1,4 +1,5 @@
 mod auth;
+mod authors;
 mod error;
 mod router;
 mod routes;

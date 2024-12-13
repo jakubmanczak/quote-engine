@@ -35,7 +35,7 @@ impl OmniError {
                     StatusCode::INTERNAL_SERVER_ERROR => error!("{ERRTEXT}: {e}"),
                     _ => (),
                 };
-                (e.suggested_status_code(), format!("{ERRTEXT}: {e}")).into_response()
+                (e.suggested_status_code(), e.to_string()).into_response()
             }
         }
     }

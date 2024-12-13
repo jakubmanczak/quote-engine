@@ -62,4 +62,4 @@ async fn auth_login() -> Response {
 }
 
 // TODO: implement sessions and actually make this a useful function in src/auth/mod.rs!
-fn remove_session(a: String) {}
+fn remove_session(_a: String) {}

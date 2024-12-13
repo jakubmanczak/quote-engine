@@ -4,6 +4,7 @@ use UserAttribute::*;
 
 #[derive(Serialize, VariantArray, Clone, Debug)]
 pub enum UserAttribute {
+    TheEverythingPermission,
     UserCreateManuallyPermission,
     UserCreateInvitePermission,
     UserDeletePermission,
@@ -19,9 +20,6 @@ const DEFAULT_ATTRIBUTES: [UserAttribute; 3] = [
     AuthorModifyPermission,
 ];
 
-pub fn default_attributes_vec() -> Vec<UserAttribute> {
-    DEFAULT_ATTRIBUTES.to_vec()
-}
 pub fn default_attributes_u64() -> u64 {
     let mut u64 = 0;
     for attr in DEFAULT_ATTRIBUTES {
@@ -34,7 +32,7 @@ impl UserAttribute {
     pub fn get_bit(&self) -> u64 {
         use UserAttribute::*;
         match self {
-            // 0b1 << 0
+            TheEverythingPermission => 0b1 << 0,
             UserCreateManuallyPermission => 0b1 << 1,
             UserCreateInvitePermission => 0b1 << 2,
             // 0b1 << 3-7

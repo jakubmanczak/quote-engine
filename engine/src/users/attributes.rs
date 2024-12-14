@@ -9,13 +9,15 @@ pub enum UserAttribute {
     UserCreateInvitePermission,
     UserDeletePermission,
     LogsInspectPermission,
+    AuthorInspectPermission,
     AuthorCreatePermission,
     AuthorModifyPermission,
     AuthorDeletePermission,
 }
 
-const DEFAULT_ATTRIBUTES: [UserAttribute; 3] = [
+const DEFAULT_ATTRIBUTES: [UserAttribute; 4] = [
     LogsInspectPermission,
+    AuthorInspectPermission,
     AuthorCreatePermission,
     AuthorModifyPermission,
 ];
@@ -40,6 +42,7 @@ impl UserAttribute {
             // 0b1 << 9
             LogsInspectPermission => 0b1 << 10,
             // 0b1 << 11-19
+            AuthorInspectPermission => 0b1 << 20,
             AuthorCreatePermission => 0b1 << 21,
             AuthorModifyPermission => 0b1 << 22,
             // 0b1 << 23-24

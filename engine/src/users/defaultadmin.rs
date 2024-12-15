@@ -33,7 +33,8 @@ pub async fn check_lack_of_account(pool: &Pool<Sqlite>) {
                     id, hash
                 ).execute(pool).await {
                     Ok(_) => {
-                        info!("admin account added to database");
+                        info!("admin account (credentials admin:admin) added to database.");
+                        info!("^^ credentials insecure; please change them at the earliest convenience.")
                     }
                     Err(e) => {
                         error!("could not add admin account to database; {e}");

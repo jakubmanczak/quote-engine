@@ -7,7 +7,7 @@ use ulid::Ulid;
 pub async fn check_lack_of_account(pool: &Pool<Sqlite>) {
     let id = Ulid::nil().to_string();
     match sqlx::query!(
-        "SELECT id, name, clearance, attributes, color, picture FROM users WHERE id = ?",
+        "SELECT id, name, clearance, attributes FROM users WHERE id = ?",
         id
     )
     .fetch_optional(pool)
@@ -29,7 +29,7 @@ pub async fn check_lack_of_account(pool: &Pool<Sqlite>) {
                 };
 
                 match sqlx::query!(
-                    "INSERT INTO users (id, name, pass, clearance, attributes, color, picture) VALUES (?, 'admin', ?, 255, 1, '#000000', '')",
+                    "INSERT INTO users (id, name, pass, clearance, attributes) VALUES (?, 'admin', ?, 255, 1)",
                     id, hash
                 ).execute(pool).await {
                     Ok(_) => {

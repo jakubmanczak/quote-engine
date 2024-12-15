@@ -1,11 +1,10 @@
-// use sqlx::{Pool, Sqlite};
-
+use crate::{error::OmniError, users::User};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::http::{header::AUTHORIZATION, HeaderMap};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use error::AuthenticationError;
 use sqlx::{Pool, Sqlite};
 use tower_cookies::{Cookie, Cookies};
-
-use crate::{error::OmniError, users::User};
 
 pub mod error;
 
@@ -44,7 +43,7 @@ pub async fn authenticate(
             match scheme {
                 "Basic" => auth_via_b64_credentials(data.to_string(), pool).await,
                 "Bearer" => {
-                    let user = auth_via_credentials(data.to_string(), pool).await?;
+                    let user = auth_via_session(data.to_string(), pool).await?;
                     let c = Cookie::build((AUTH_COOKIE_NAME, data.to_string()))
                         .max_age(tower_cookies::cookie::time::Duration::weeks(2))
                         .http_only(true)
@@ -73,12 +72,45 @@ pub async fn authenticate(
     }
 }
 
-async fn auth_via_b64_credentials(_data: String, _pool: &Pool<Sqlite>) -> Result<User, OmniError> {
-    todo!()
+async fn auth_via_b64_credentials(data: String, pool: &Pool<Sqlite>) -> Result<User, OmniError> {
+    let (usr, pwd) = match String::from_utf8(BASE64_STANDARD.decode(data)?)?.split_once(":") {
+        Some((usr, pwd)) => (usr.to_string(), pwd.to_string()),
+        None => return Err(AuthenticationError::NoBasicAuthColonSplit.into()),
+    };
+    auth_via_credentials(usr, pwd, pool).await
 }
 
-pub async fn auth_via_credentials(_data: String, _pool: &Pool<Sqlite>) -> Result<User, OmniError> {
-    todo!()
+pub async fn auth_via_credentials(
+    username: String,
+    password: String,
+    pool: &Pool<Sqlite>,
+) -> Result<User, OmniError> {
+    let hashpass = match sqlx::query!("SELECT pass FROM users WHERE name = ?", username)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(a) => match a {
+            Some(a) => a.pass,
+            None => return Err(AuthenticationError::InvalidCredentials)?,
+        },
+        Err(e) => return Err(e)?,
+    };
+    let argon = Argon2::default();
+    let hash = match PasswordHash::new(hashpass.as_str()) {
+        Ok(h) => h,
+        Err(e) => return Err(AuthenticationError::NoParsePHC)?,
+    };
+
+    match argon.verify_password(password.as_bytes(), &hash).is_ok() {
+        true => match User::get_by_username(username.as_str(), pool).await {
+            Ok(optuser) => match optuser {
+                Some(user) => Ok(user),
+                None => Err(AuthenticationError::InvalidCredentials)?,
+            },
+            Err(e) => Err(e)?,
+        },
+        false => Err(AuthenticationError::InvalidCredentials)?,
+    }
 }
 
 pub async fn auth_via_session(_data: String, _pool: &Pool<Sqlite>) -> Result<User, OmniError> {

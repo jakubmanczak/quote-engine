@@ -15,10 +15,6 @@ pub struct User {
     pub id: Ulid,
     pub name: String,
     #[serde(skip_deserializing)]
-    pub color: String,
-    #[serde(skip_deserializing)]
-    pub picture: String,
-    #[serde(skip_deserializing)]
     #[serde(default = "default_clearance")]
     clearance: u8,
     #[serde(skip_deserializing)]
@@ -33,6 +29,7 @@ fn default_clearance() -> u8 {
 impl User {
     pub fn has_attribute(&self, attr: UserAttribute) -> bool {
         (self.attributes & attr.get_bit()) != 0
+            || (self.attributes & UserAttribute::TheEverythingPermission.get_bit() != 0)
     }
     pub fn attributes_vec(&self) -> Vec<UserAttribute> {
         UserAttribute::VARIANTS
@@ -50,32 +47,51 @@ impl User {
     // ONLY DATABASE QUERIES BELOW
     pub async fn get_by_id(id: Ulid, pool: &Pool<Sqlite>) -> Result<Option<User>, OmniError> {
         let idstr = id.to_string();
-        let rec = match sqlx::query!(
-            "SELECT name, clearance, attributes, color, picture FROM users WHERE id = ?",
+        match sqlx::query!(
+            "SELECT name, clearance, attributes FROM users WHERE id = ?",
             idstr
         )
         .fetch_optional(pool)
         .await
         {
             Ok(rec) => match rec {
-                Some(rec) => rec,
+                Some(rec) => Ok(Some(User {
+                    id,
+                    name: rec.name,
+                    clearance: rec.clearance as u8,
+                    attributes: rec.attributes as u64,
+                })),
                 None => return Ok(None),
             },
             Err(e) => return Err(OmniError::SqlxError(e)),
-        };
-
-        Ok(Some(User {
-            id,
-            name: rec.name,
-            color: rec.color,
-            picture: rec.picture,
-            attributes: rec.attributes as u64,
-            clearance: rec.clearance as u8,
-        }))
+        }
+    }
+    pub async fn get_by_username(
+        username: &str,
+        pool: &Pool<Sqlite>,
+    ) -> Result<Option<User>, OmniError> {
+        match sqlx::query!(
+            "SELECT id, clearance, attributes FROM users WHERE name = ?",
+            username
+        )
+        .fetch_optional(pool)
+        .await
+        {
+            Ok(opt) => match opt {
+                Some(rec) => Ok(Some(User {
+                    id: Ulid::from_string(&rec.id)?,
+                    name: username.to_string(),
+                    clearance: rec.clearance as u8,
+                    attributes: rec.attributes as u64,
+                })),
+                None => return Ok(None),
+            },
+            Err(e) => return Err(OmniError::SqlxError(e)),
+        }
     }
     pub async fn get_all(pool: &Pool<Sqlite>) -> Result<Vec<User>, OmniError> {
         let recs = match sqlx::query!(
-            "SELECT id, name, clearance, attributes, color, picture FROM users ORDER BY clearance, id"
+            "SELECT id, name, clearance, attributes FROM users ORDER BY clearance, id"
         )
         .fetch_all(pool)
         .await
@@ -89,8 +105,6 @@ impl User {
                 Ok(User {
                     id: Ulid::from_string(&record.id)?,
                     name: record.name,
-                    color: record.color,
-                    picture: record.picture,
                     clearance: record.clearance as u8,
                     attributes: record.attributes as u64,
                 })

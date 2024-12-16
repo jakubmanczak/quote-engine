@@ -1,13 +1,16 @@
 use crate::error::OmniError;
 use attributes::UserAttribute;
+use patch::{UserPatch, UserPatchError};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 use ulid::Ulid;
 
 pub mod attributes;
 pub mod defaultadmin;
+pub mod patch;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct User {
     #[serde(skip_deserializing)]
     #[serde(default = "Ulid::new")]
@@ -15,7 +18,7 @@ pub struct User {
     pub name: String,
     #[serde(skip_deserializing)]
     #[serde(default = "default_clearance")]
-    clearance: u8,
+    pub clearance: u8,
     #[serde(skip_deserializing)]
     #[serde(default = "attributes::default_attributes_u64")]
     attributes: u64,
@@ -85,6 +88,26 @@ impl User {
                 })),
                 None => return Ok(None),
             },
+            Err(e) => return Err(e)?,
+        }
+    }
+    pub async fn patch(self, patch: UserPatch, pool: &Pool<Sqlite>) -> Result<User, OmniError> {
+        if self.id.is_nil() && patch.clearance.is_some() {
+            return Err(UserPatchError::NoChangeRootClearance)?;
+        }
+        let user = User {
+            id: self.id,
+            name: patch.name.unwrap_or(self.name),
+            clearance: patch.clearance.unwrap_or(self.clearance),
+            attributes: self.attributes,
+        };
+        let name = &user.name;
+        let clearance = user.clearance as i64;
+        match sqlx::query!("UPDATE users SET name = ?, clearance = ?", name, clearance)
+            .execute(pool)
+            .await
+        {
+            Ok(_) => Ok(user),
             Err(e) => return Err(e)?,
         }
     }

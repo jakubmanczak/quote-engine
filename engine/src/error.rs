@@ -1,4 +1,4 @@
-use crate::auth::error::AuthenticationError;
+use crate::{auth::error::AuthenticationError, users::patch::UserPatchError};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -9,6 +9,8 @@ use tracing::error;
 pub enum OmniError {
     #[error("{0}")]
     AuthError(#[from] AuthenticationError),
+    #[error("{0}")]
+    UserPatchError(#[from] UserPatchError),
     #[error("{0}")]
     SqlxError(#[from] sqlx::Error),
     #[error("{0}")]
@@ -30,6 +32,10 @@ impl OmniError {
                     _ => (),
                 };
                 (e.suggested_status_code(), e.to_string()).into_response()
+            }
+            Self::UserPatchError(e) => {
+                const ERRTEXT: &str = "User patch error";
+                (StatusCode::BAD_REQUEST, format!("{ERRTEXT}: {e}")).into_response()
             }
             SqlxError(e) => {
                 const ERRTEXT: &str = "Database error";

@@ -95,6 +95,7 @@ async fn auth_clear(
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct AuthLoginFields {
     username: String,
     password: String,

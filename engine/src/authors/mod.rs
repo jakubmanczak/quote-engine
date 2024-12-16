@@ -5,6 +5,7 @@ use ulid::Ulid;
 use crate::error::OmniError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Author {
     #[serde(skip_deserializing)]
     #[serde(default = "Ulid::new")]

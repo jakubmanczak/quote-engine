@@ -20,6 +20,8 @@ pub enum AuthenticationError {
     SessionExpired,
     #[error("Unable to represent expiry date as an i64, please time travel backwards.")]
     UnableToCreateExpiry,
+    #[error("Can't remove sessions from non Bearer scheme headers.")]
+    SessionRemoveNonBearerHeader,
 }
 
 impl AuthenticationError {
@@ -31,7 +33,8 @@ impl AuthenticationError {
             NoHeaderAuthSchemeData
             | NonAsciiHeaderCharacters
             | NoBasicAuthColonSplit
-            | UnsupportedAuthScheme => StatusCode::BAD_REQUEST,
+            | UnsupportedAuthScheme
+            | SessionRemoveNonBearerHeader => StatusCode::BAD_REQUEST,
         }
     }
 }

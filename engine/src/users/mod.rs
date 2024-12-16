@@ -1,10 +1,9 @@
+use crate::error::OmniError;
 use attributes::UserAttribute;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
-use strum::VariantArray;
 use ulid::Ulid;
 
-use crate::error::OmniError;
 pub mod attributes;
 pub mod defaultadmin;
 
@@ -31,18 +30,18 @@ impl User {
         (self.attributes & attr.get_bit()) != 0
             || (self.attributes & UserAttribute::TheEverythingPermission.get_bit() != 0)
     }
-    pub fn attributes_vec(&self) -> Vec<UserAttribute> {
-        UserAttribute::VARIANTS
-            .iter()
-            .filter_map(|variant| {
-                if self.attributes & variant.get_bit() != 0 {
-                    Some(variant.to_owned())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
+    // pub fn attributes_vec(&self) -> Vec<UserAttribute> {
+    //     UserAttribute::VARIANTS
+    //         .iter()
+    //         .filter_map(|variant| {
+    //             if self.attributes & variant.get_bit() != 0 {
+    //                 Some(variant.to_owned())
+    //             } else {
+    //                 None
+    //             }
+    //         })
+    //         .collect()
+    // }
 
     // ONLY DATABASE QUERIES BELOW
     pub async fn get_by_id(id: Ulid, pool: &Pool<Sqlite>) -> Result<Option<User>, OmniError> {

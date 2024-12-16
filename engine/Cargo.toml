@@ -9,6 +9,7 @@ edition = "2021"
 argon2 = "0.5.3"
 axum = { version = "0.7.5", features = ["macros"] }
 base64 = "0.22.1"
+chrono = "0.4.39"
 dotenvy = "0.15.7"
 rand = "0.8.5"
 serde = { version = "1.0.204", features = ["derive"] }

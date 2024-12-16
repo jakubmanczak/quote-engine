@@ -37,13 +37,13 @@ impl Author {
                 })),
                 None => return Ok(None),
             },
-            Err(e) => return Err(OmniError::SqlxError(e)),
+            Err(e) => return Err(e)?,
         }
     }
     pub async fn get_all(pool: &Pool<Sqlite>) -> Result<Vec<Author>, OmniError> {
         let recs = match sqlx::query!("SELECT * FROM authors").fetch_all(pool).await {
             Ok(recs) => recs,
-            Err(e) => return Err(OmniError::SqlxError(e)),
+            Err(e) => return Err(e)?,
         };
         let vec: Vec<Author> = recs
             .into_iter()
@@ -64,7 +64,7 @@ impl Author {
             .await
         {
             Ok(rec) => Ok(rec.count),
-            Err(e) => Err(OmniError::SqlxError(e)),
+            Err(e) => Err(e)?,
         }
     }
     pub async fn post(author: Author, pool: &Pool<Sqlite>) -> Result<Author, OmniError> {
@@ -79,7 +79,7 @@ impl Author {
         .await
         {
             Ok(_) => Ok(author),
-            Err(e) => Err(OmniError::SqlxError(e)),
+            Err(e) => Err(e)?,
         }
     }
     pub async fn delete(id: Ulid, pool: &Pool<Sqlite>) -> Result<(), OmniError> {
@@ -89,7 +89,7 @@ impl Author {
             .await
         {
             Ok(_) => Ok(()),
-            Err(e) => Err(OmniError::SqlxError(e)),
+            Err(e) => Err(e)?,
         }
     }
     pub async fn patch(
@@ -113,7 +113,7 @@ impl Author {
                         name,
                         obfname: author.obfname,
                     })),
-                    Err(e) => Err(OmniError::SqlxError(e)),
+                    Err(e) => Err(e)?,
                 }
             }
             AuthorUpdate::ObfName(obfname) => match sqlx::query!(
@@ -129,7 +129,7 @@ impl Author {
                     name: author.name,
                     obfname,
                 })),
-                Err(e) => Err(OmniError::SqlxError(e)),
+                Err(e) => Err(e)?,
             },
         }
     }

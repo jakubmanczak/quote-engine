@@ -62,7 +62,7 @@ impl User {
                 })),
                 None => return Ok(None),
             },
-            Err(e) => return Err(OmniError::SqlxError(e)),
+            Err(e) => return Err(e)?,
         }
     }
     pub async fn get_by_username(
@@ -85,7 +85,7 @@ impl User {
                 })),
                 None => return Ok(None),
             },
-            Err(e) => return Err(OmniError::SqlxError(e)),
+            Err(e) => return Err(e)?,
         }
     }
     pub async fn get_all(pool: &Pool<Sqlite>) -> Result<Vec<User>, OmniError> {
@@ -96,7 +96,7 @@ impl User {
         .await
         {
             Ok(records) => records,
-            Err(e) => return Err(OmniError::SqlxError(e)),
+            Err(e) => return Err(e)?,
         };
 
         recs.into_iter()
@@ -116,7 +116,7 @@ impl User {
             .await
         {
             Ok(rec) => Ok(rec.count),
-            Err(e) => Err(OmniError::SqlxError(e)),
+            Err(e) => Err(e)?,
         }
     }
 }

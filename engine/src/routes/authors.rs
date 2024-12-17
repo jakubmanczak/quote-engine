@@ -11,7 +11,7 @@ use ulid::Ulid;
 
 use crate::{
     auth::authenticate,
-    authors::{Author, AuthorUpdate},
+    authors::{Author, AuthorPatch},
     users::attributes::UserAttribute,
 };
 
@@ -44,7 +44,7 @@ async fn get_author_by_id(
     match Author::get_by_id(id, &pool).await {
         Ok(author) => match author {
             Some(author) => Json(author).into_response(),
-            None => (StatusCode::NOT_FOUND, "No such author found").into_response(),
+            None => (StatusCode::BAD_REQUEST, "No such author found").into_response(),
         },
         Err(e) => e.log_and_respond(),
     }
@@ -113,7 +113,7 @@ async fn patch_author_by_id(
     State(pool): State<Pool<Sqlite>>,
     headers: HeaderMap,
     cookies: Cookies,
-    Json(body): Json<AuthorUpdate>,
+    Json(body): Json<AuthorPatch>,
 ) -> Response {
     let user = match authenticate(&headers, cookies, &pool).await {
         Ok(user) => user,
@@ -123,11 +123,16 @@ async fn patch_author_by_id(
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    match Author::patch(id, body, &pool).await {
-        Ok(author) => match author {
-            Some(author) => (StatusCode::OK, Json(author)).into_response(),
-            None => (StatusCode::NOT_FOUND, "No such author found").into_response(),
+    let author = match Author::get_by_id(id, &pool).await {
+        Ok(a) => match a {
+            Some(author) => author,
+            None => return (StatusCode::BAD_REQUEST, "No such author found.").into_response(),
         },
+        Err(e) => return e.log_and_respond(),
+    };
+
+    match author.patch(body, &pool).await {
+        Ok(author) => (StatusCode::OK, Json(author)).into_response(),
         Err(e) => e.log_and_respond(),
     }
 }

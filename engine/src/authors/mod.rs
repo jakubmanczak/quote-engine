@@ -14,12 +14,10 @@ pub struct Author {
     pub obfname: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub enum AuthorUpdate {
-    #[serde(rename = "name")]
-    Name(String),
-    #[serde(rename = "obfname")]
-    ObfName(String),
+#[derive(Deserialize)]
+pub struct AuthorPatch {
+    pub name: Option<String>,
+    pub obfname: Option<String>,
 }
 
 impl Author {
@@ -93,45 +91,20 @@ impl Author {
             Err(e) => Err(e)?,
         }
     }
-    pub async fn patch(
-        id: Ulid,
-        patch: AuthorUpdate,
-        pool: &Pool<Sqlite>,
-    ) -> Result<Option<Author>, OmniError> {
-        let idstr = id.to_string();
-        let author = match Author::get_by_id(id, pool).await? {
-            Some(author) => author,
-            None => return Ok(None),
+    pub async fn patch(self, patch: AuthorPatch, pool: &Pool<Sqlite>) -> Result<Author, OmniError> {
+        let author = Author {
+            id: self.id,
+            name: patch.name.unwrap_or(self.name),
+            obfname: patch.obfname.unwrap_or(self.obfname),
         };
-        match patch {
-            AuthorUpdate::Name(name) => {
-                match sqlx::query!("UPDATE authors SET name = ? WHERE id = ?", name, idstr)
-                    .execute(pool)
-                    .await
-                {
-                    Ok(_) => Ok(Some(Author {
-                        id,
-                        name,
-                        obfname: author.obfname,
-                    })),
-                    Err(e) => Err(e)?,
-                }
-            }
-            AuthorUpdate::ObfName(obfname) => match sqlx::query!(
-                "UPDATE authors SET obfname = ? WHERE id = ?",
-                obfname,
-                idstr
-            )
+        let name = &author.name;
+        let obfname = &author.obfname;
+        match sqlx::query!("UPDATE authors SET name = ?, obfname = ?", name, obfname)
             .execute(pool)
             .await
-            {
-                Ok(_) => Ok(Some(Author {
-                    id,
-                    name: author.name,
-                    obfname,
-                })),
-                Err(e) => Err(e)?,
-            },
+        {
+            Ok(_) => Ok(author),
+            Err(e) => Err(e)?,
         }
     }
 }

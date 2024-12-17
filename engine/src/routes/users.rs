@@ -41,7 +41,7 @@ async fn get_user_by_id(
     match User::get_by_id(id, &pool).await {
         Ok(user) => match user {
             Some(user) => Json(user).into_response(),
-            None => (StatusCode::NOT_FOUND, "No such user found").into_response(),
+            None => (StatusCode::BAD_REQUEST, "No such user found").into_response(),
         },
         Err(e) => e.log_and_respond(),
     }

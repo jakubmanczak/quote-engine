@@ -1,6 +1,5 @@
 use crate::error::OmniError;
 use attributes::UserAttribute;
-use chrono::{DateTime, Utc};
 use patch::{UserPatch, UserPatchError};
 use serde::{Deserialize, Serialize};
 use sessions::UserSession;
@@ -148,7 +147,7 @@ impl User {
                     Ok(UserSession {
                         id: Ulid::from_string(&r.id)?,
                         userid: self.id,
-                        token: r.token,
+                        // token: r.token,
                         issued: r.issued,
                         expiry: r.expiry,
                         lastaccess: r.lastaccess,

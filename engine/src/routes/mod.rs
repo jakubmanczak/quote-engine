@@ -6,6 +6,7 @@ use axum::{
 };
 use sqlx::{Pool, Sqlite};
 
+mod attributes;
 mod auth;
 mod authors;
 mod users;
@@ -18,6 +19,7 @@ pub fn all() -> Router<Pool<Sqlite>> {
         .route("/teapot", get(teapot))
         .merge(auth::routes())
         .merge(users::routes())
+        .merge(attributes::routes())
         .merge(authors::routes())
 }
 

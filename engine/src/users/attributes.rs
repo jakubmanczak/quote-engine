@@ -31,22 +31,26 @@ pub fn default_attributes_u64() -> u64 {
 }
 
 impl UserAttribute {
-    pub fn get_bit(&self) -> u64 {
+    pub fn get_bit_offset(&self) -> u8 {
         use UserAttribute::*;
         match self {
-            TheEverythingPermission => 0b1 << 0,
-            UserCreateManuallyPermission => 0b1 << 1,
-            UserCreateInvitePermission => 0b1 << 2,
+            TheEverythingPermission => 0,
+            UserCreateManuallyPermission => 1,
+            UserCreateInvitePermission => 2,
             // 0b1 << 3-7
-            UserDeletePermission => 0b1 << 8,
+            UserDeletePermission => 8,
             // 0b1 << 9
-            LogsInspectPermission => 0b1 << 10,
+            LogsInspectPermission => 10,
             // 0b1 << 11-19
-            AuthorInspectPermission => 0b1 << 20,
-            AuthorCreatePermission => 0b1 << 21,
-            AuthorModifyPermission => 0b1 << 22,
+            AuthorInspectPermission => 20,
+            AuthorCreatePermission => 21,
+            AuthorModifyPermission => 22,
             // 0b1 << 23-24
-            AuthorDeletePermission => 0b1 << 25,
+            AuthorDeletePermission => 25,
+            // 0b1 << 26-63
         }
+    }
+    pub fn get_bit(&self) -> u64 {
+        0b1 << self.get_bit_offset()
     }
 }

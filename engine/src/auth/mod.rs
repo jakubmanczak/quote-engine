@@ -1,7 +1,10 @@
 use crate::{error::OmniError, users::User};
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::http::{header::AUTHORIZATION, HeaderMap};
-use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
+use base64::{
+    prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
+    Engine,
+};
 use chrono::{Duration, Utc};
 use error::AuthenticationError;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -77,8 +80,7 @@ pub async fn authenticate(
 }
 
 async fn auth_via_b64_credentials(data: String, pool: &Pool<Sqlite>) -> Result<User, OmniError> {
-    let (usr, pwd) = match String::from_utf8(BASE64_URL_SAFE_NO_PAD.decode(data)?)?.split_once(":")
-    {
+    let (usr, pwd) = match String::from_utf8(BASE64_STANDARD.decode(data)?)?.split_once(":") {
         Some((usr, pwd)) => (usr.to_string(), pwd.to_string()),
         None => return Err(AuthenticationError::NoBasicAuthColonSplit.into()),
     };

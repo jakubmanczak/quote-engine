@@ -23,6 +23,7 @@ pub fn routes() -> Router<Pool<Sqlite>> {
         .route("/users", get(get_users).post(post_new_user_manually))
         .route("/users/:id", get(get_user_by_id).patch(patch_user))
         .route("/users/self", get(get_user_self))
+        .route("/users/self/sessions", get(get_self_sessions))
         .route("/users/count", get(get_users_count))
 }
 
@@ -73,6 +74,21 @@ async fn get_user_self(
     }
 }
 
+async fn get_self_sessions(
+    headers: HeaderMap,
+    cookies: Cookies,
+    State(pool): State<Pool<Sqlite>>,
+) -> Response {
+    let user = match authenticate(&headers, cookies, &pool).await {
+        Ok(user) => user,
+        Err(e) => return e.log_and_respond(),
+    };
+    match user.get_sessions(&pool).await {
+        Ok(vec) => Json(vec).into_response(),
+        Err(e) => e.log_and_respond(),
+    }
+}
+
 async fn patch_user(
     headers: HeaderMap,
     cookies: Cookies,
@@ -90,6 +106,7 @@ async fn patch_user(
         },
         Err(e) => return e.log_and_respond(),
     };
+    // TODO: check update permissions, apart from just clearance
     let actor = match authenticate(&headers, cookies, &pool).await {
         Ok(actor) => actor,
         Err(e) => return e.log_and_respond(),

@@ -1,13 +1,16 @@
 use crate::error::OmniError;
 use attributes::UserAttribute;
+use chrono::{DateTime, Utc};
 use patch::{UserPatch, UserPatchError};
 use serde::{Deserialize, Serialize};
+use sessions::UserSession;
 use sqlx::{Pool, Sqlite};
 use ulid::Ulid;
 
 pub mod attributes;
 pub mod defaultadmin;
 pub mod patch;
+pub mod sessions;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -132,6 +135,28 @@ impl User {
                 })
             })
             .collect()
+    }
+    pub async fn get_sessions(&self, pool: &Pool<Sqlite>) -> Result<Vec<UserSession>, OmniError> {
+        let idstr = self.id.to_string();
+        match sqlx::query!("SELECT * FROM sessions WHERE user = ?", idstr)
+            .fetch_all(pool)
+            .await
+        {
+            Ok(records) => records
+                .into_iter()
+                .map(|r| {
+                    Ok(UserSession {
+                        id: Ulid::from_string(&r.id)?,
+                        userid: self.id,
+                        token: r.token,
+                        issued: r.issued,
+                        expiry: r.expiry,
+                        lastaccess: r.lastaccess,
+                    })
+                })
+                .collect::<Result<Vec<UserSession>, OmniError>>(),
+            Err(e) => return Err(e)?,
+        }
     }
     pub async fn get_db_count(pool: &Pool<Sqlite>) -> Result<i64, OmniError> {
         match sqlx::query!("SELECT COUNT(id) AS count FROM users")

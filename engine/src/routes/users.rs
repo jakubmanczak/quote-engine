@@ -10,6 +10,7 @@ use tower_cookies::Cookies;
 use ulid::Ulid;
 
 use crate::{
+    all_none_trait::AllNoneChecker,
     auth::authenticate,
     error::OmniError,
     users::{
@@ -96,7 +97,7 @@ async fn patch_user(
     Path(id): Path<Ulid>,
     Json(patch): Json<UserPatch>,
 ) -> Response {
-    if !patch.is_valid() {
+    if patch.all_none() {
         return OmniError::from(UserPatchError::NoFields).log_and_respond();
     }
     let target = match User::get_by_id(id, &pool).await {

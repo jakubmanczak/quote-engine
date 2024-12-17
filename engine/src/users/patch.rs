@@ -22,9 +22,3 @@ pub enum UserPatchError {
     // #[error("Can't change root user's TheEverythingPermission attribute.")]
     // NoChangeRootEverythingPermission,
 }
-
-impl UserPatch {
-    pub fn is_valid(&self) -> bool {
-        self.name.is_some() || self.clearance.is_some()
-    }
-}

@@ -1,3 +1,4 @@
+mod all_none_trait;
 mod auth;
 mod authors;
 mod error;

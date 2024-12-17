@@ -10,6 +10,7 @@ use tower_cookies::Cookies;
 use ulid::Ulid;
 
 use crate::{
+    all_none_trait::AllNoneChecker,
     auth::authenticate,
     authors::{Author, AuthorPatch},
     users::attributes::UserAttribute,
@@ -115,6 +116,9 @@ async fn patch_author_by_id(
     cookies: Cookies,
     Json(body): Json<AuthorPatch>,
 ) -> Response {
+    if body.all_none() {
+        return (StatusCode::BAD_REQUEST, "No fields to update.").into_response();
+    }
     let user = match authenticate(&headers, cookies, &pool).await {
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),

@@ -12,7 +12,7 @@ use ulid::Ulid;
 use crate::{
     all_none_trait::AllNoneChecker,
     auth::authenticate,
-    authors::{Author, AuthorPatch},
+    authors::{extended::ExtendedAuthor, Author, AuthorPatch},
     users::attributes::UserAttribute,
 };
 
@@ -25,6 +25,7 @@ pub fn routes() -> Router<Pool<Sqlite>> {
                 .patch(patch_author_by_id)
                 .delete(delete_author_by_id),
         )
+        .route("/authors/:id/extended", get(get_extended_author))
         .route("/authors/count", get(get_authors_count))
 }
 
@@ -43,6 +44,29 @@ async fn get_author_by_id(
     }
 
     match Author::get_by_id(id, &pool).await {
+        Ok(author) => match author {
+            Some(author) => Json(author).into_response(),
+            None => (StatusCode::BAD_REQUEST, "No such author found").into_response(),
+        },
+        Err(e) => e.log_and_respond(),
+    }
+}
+
+async fn get_extended_author(
+    Path(id): Path<Ulid>,
+    State(pool): State<Pool<Sqlite>>,
+    headers: HeaderMap,
+    cookies: Cookies,
+) -> Response {
+    let user = match authenticate(&headers, cookies, &pool).await {
+        Ok(user) => user,
+        Err(e) => return e.log_and_respond(),
+    };
+    if !user.has_attribute(UserAttribute::AuthorInspectPermission) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+
+    match ExtendedAuthor::get_by_id(id, &pool).await {
         Ok(author) => match author {
             Some(author) => Json(author).into_response(),
             None => (StatusCode::BAD_REQUEST, "No such author found").into_response(),

@@ -1,8 +1,9 @@
+use crate::error::OmniError;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 use ulid::Ulid;
 
-use crate::error::OmniError;
+pub mod extended;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -26,24 +27,20 @@ impl Author {
         let idstr = id.to_string();
         match sqlx::query!("SELECT * FROM authors WHERE id = ?", idstr)
             .fetch_optional(pool)
-            .await
+            .await?
         {
-            Ok(rec) => match rec {
-                Some(rec) => Ok(Some(Author {
-                    id,
-                    name: rec.name,
-                    obfname: rec.obfname,
-                })),
-                None => return Ok(None),
-            },
-            Err(e) => return Err(e)?,
+            Some(rec) => Ok(Some(Author {
+                id,
+                name: rec.name,
+                obfname: rec.obfname,
+            })),
+            None => return Ok(None),
         }
     }
     pub async fn get_all(pool: &Pool<Sqlite>) -> Result<Vec<Author>, OmniError> {
-        let recs = match sqlx::query!("SELECT * FROM authors").fetch_all(pool).await {
-            Ok(recs) => recs,
-            Err(e) => return Err(e)?,
-        };
+        let recs = sqlx::query!("SELECT * FROM authors")
+            .fetch_all(pool)
+            .await?;
         let vec: Vec<Author> = recs
             .into_iter()
             .map(|rec| {
@@ -58,13 +55,10 @@ impl Author {
         Ok(vec)
     }
     pub async fn get_db_count(pool: &Pool<Sqlite>) -> Result<i64, OmniError> {
-        match sqlx::query!("SELECT COUNT(id) AS count FROM users")
+        Ok(sqlx::query!("SELECT COUNT(id) AS count FROM users")
             .fetch_one(pool)
-            .await
-        {
-            Ok(rec) => Ok(rec.count),
-            Err(e) => Err(e)?,
-        }
+            .await?
+            .count)
     }
     pub async fn post(author: Author, pool: &Pool<Sqlite>) -> Result<Author, OmniError> {
         let idstr = author.id.to_string();

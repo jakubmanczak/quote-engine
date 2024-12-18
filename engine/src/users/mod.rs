@@ -32,6 +32,9 @@ fn default_clearance() -> u8 {
 
 impl User {
     pub fn has_attribute(&self, attr: UserAttribute) -> bool {
+        self.attributes & attr.get_bit() != 0
+    }
+    pub fn has_permission(&self, attr: UserAttribute) -> bool {
         (self.attributes & attr.get_bit()) != 0
             || (self.attributes & UserAttribute::TheEverythingPermission.get_bit() != 0)
     }

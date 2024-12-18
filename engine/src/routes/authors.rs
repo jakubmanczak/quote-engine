@@ -39,7 +39,7 @@ async fn get_author_by_id(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorInspectPermission) {
+    if !user.has_permission(UserAttribute::AuthorInspectPermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -62,7 +62,7 @@ async fn get_extended_author(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorInspectPermission) {
+    if !user.has_permission(UserAttribute::AuthorInspectPermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -84,7 +84,7 @@ async fn get_authors(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorInspectPermission) {
+    if !user.has_permission(UserAttribute::AuthorInspectPermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -103,7 +103,7 @@ async fn get_authors_count(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorInspectPermission) {
+    if !user.has_permission(UserAttribute::AuthorInspectPermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -123,7 +123,7 @@ async fn post_author(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorCreatePermission) {
+    if !user.has_permission(UserAttribute::AuthorCreatePermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -147,7 +147,7 @@ async fn patch_author_by_id(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorModifyPermission) {
+    if !user.has_permission(UserAttribute::AuthorModifyPermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -175,7 +175,7 @@ async fn delete_author_by_id(
         Ok(user) => user,
         Err(e) => return e.log_and_respond(),
     };
-    if !user.has_attribute(UserAttribute::AuthorDeletePermission) {
+    if !user.has_permission(UserAttribute::AuthorDeletePermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
     let target = match Author::get_by_id(id, &pool).await {

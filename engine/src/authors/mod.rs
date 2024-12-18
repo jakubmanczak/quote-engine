@@ -75,8 +75,8 @@ impl Author {
             Err(e) => Err(e)?,
         }
     }
-    pub async fn delete(id: Ulid, pool: &Pool<Sqlite>) -> Result<(), OmniError> {
-        let idstr = id.to_string();
+    pub async fn delete(self, pool: &Pool<Sqlite>) -> Result<(), OmniError> {
+        let idstr = self.id.to_string();
         match sqlx::query!("DELETE FROM authors WHERE id = ?", idstr)
             .execute(pool)
             .await

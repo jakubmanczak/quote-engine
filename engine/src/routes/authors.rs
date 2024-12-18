@@ -178,8 +178,14 @@ async fn delete_author_by_id(
     if !user.has_attribute(UserAttribute::AuthorDeletePermission) {
         return StatusCode::FORBIDDEN.into_response();
     }
-
-    match Author::delete(id, &pool).await {
+    let target = match Author::get_by_id(id, &pool).await {
+        Ok(author) => match author {
+            Some(author) => author,
+            None => return (StatusCode::BAD_REQUEST, "No such author found.").into_response(),
+        },
+        Err(e) => return e.log_and_respond(),
+    };
+    match target.delete(&pool).await {
         Ok(_) => (StatusCode::NO_CONTENT).into_response(),
         Err(e) => e.log_and_respond(),
     }

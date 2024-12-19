@@ -34,6 +34,8 @@ impl User {
     pub fn has_attribute(&self, attr: UserAttribute) -> bool {
         self.attributes & attr.get_bit() != 0
     }
+    /// this is just has_attribute, but with a check for the everything permission attribute;
+    /// this should be used when checking permissions, but not for other kinds of attributes
     pub fn has_permission(&self, attr: UserAttribute) -> bool {
         (self.attributes & attr.get_bit()) != 0
             || (self.attributes & UserAttribute::TheEverythingPermission.get_bit() != 0)

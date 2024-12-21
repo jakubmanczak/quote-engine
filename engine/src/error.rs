@@ -1,4 +1,4 @@
-use crate::{auth::AuthenticationError, db::users::GetUserDataError, logs::LogError};
+use crate::{auth::error::AuthenticationError, users::patch::UserPatchError};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -6,34 +6,56 @@ use axum::{
 use tracing::error;
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum OmniError {
     #[error("{0}")]
-    AuthenticationError(#[from] AuthenticationError),
-    #[error("GetUserDataError: {0}")]
-    GetUserDataError(#[from] GetUserDataError),
-    #[error("Base64DecodeError: {0}")]
+    AuthError(#[from] AuthenticationError),
+    #[error("{0}")]
+    UserPatchError(#[from] UserPatchError),
+    #[error("{0}")]
+    SqlxError(#[from] sqlx::Error),
+    #[error("{0}")]
+    UlidDecodeError(#[from] ulid::DecodeError),
+    #[error("{0}")]
     Base64DecodeError(#[from] base64::DecodeError),
-    #[error("FromUtf8Error: {0}")]
+    #[error("{0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
-    #[error("SerdeJsonError: {0}")]
-    SerdeJsonError(#[from] serde_json::Error),
-    #[error("LogError: {0}")]
-    LogError(#[from] LogError),
 }
 
-impl Error {
-    pub fn log_and_response(self) -> Response {
+impl OmniError {
+    pub fn log_and_respond(self) -> Response {
+        use OmniError::*;
         match self {
-            crate::error::Error::AuthenticationError(ref e) => {
+            AuthError(e) => {
+                const ERRTEXT: &str = "Authentication error";
                 match e.suggested_status_code() {
-                    StatusCode::INTERNAL_SERVER_ERROR => error!("{}", self),
+                    StatusCode::INTERNAL_SERVER_ERROR => error!("{ERRTEXT}: {e}"),
                     _ => (),
                 };
                 (e.suggested_status_code(), e.to_string()).into_response()
             }
-            _ => {
-                error!("{}", self);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Error logged serverside").into_response()
+            Self::UserPatchError(e) => {
+                const ERRTEXT: &str = "User patch error";
+                (StatusCode::BAD_REQUEST, format!("{ERRTEXT}: {e}")).into_response()
+            }
+            SqlxError(e) => {
+                const ERRTEXT: &str = "Database error";
+                error!("{ERRTEXT}: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, ERRTEXT).into_response()
+            }
+            UlidDecodeError(e) => {
+                const ERRTEXT: &str = "Ulid decode error";
+                error!("{ERRTEXT}: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, ERRTEXT).into_response()
+            }
+            Base64DecodeError(e) => {
+                const ERRTEXT: &str = "BASE64 decode error";
+                error!("{ERRTEXT}: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, ERRTEXT).into_response()
+            }
+            FromUtf8Error(e) => {
+                const ERRTEXT: &str = "UTF-8 decode error";
+                error!("{ERRTEXT}: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, ERRTEXT).into_response()
             }
         }
     }

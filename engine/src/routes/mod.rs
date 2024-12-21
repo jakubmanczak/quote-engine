@@ -1,26 +1,32 @@
-use axum::{routing::get, Router};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
+use sqlx::{Pool, Sqlite};
 
+mod attributes;
 mod auth;
 mod authors;
-mod lines;
-mod logs;
-mod permissions;
-mod quotes;
 mod users;
 
-pub fn routes() -> Router {
+pub fn all() -> Router<Pool<Sqlite>> {
     Router::new()
-        .route("/", get(healthcheck))
-        .route("/live", get(healthcheck))
-        .route("/health", get(healthcheck))
-        .merge(auth::exported_routes())
-        .merge(users::exported_routes())
-        .merge(permissions::exported_routes())
-        .merge(logs::exported_routes())
-        .merge(quotes::exported_routes())
-        .merge(lines::exported_routes())
-        .merge(authors::exported_routes())
+        .route("/", get(twohundred))
+        .route("/health", get(twohundred))
+        .route("/live", get(twohundred))
+        .route("/teapot", get(teapot))
+        .merge(auth::routes())
+        .merge(users::routes())
+        .merge(attributes::routes())
+        .merge(authors::routes())
 }
 
-// 200 OK
-async fn healthcheck() -> () {}
+async fn twohundred() -> Response {
+    StatusCode::OK.into_response()
+}
+
+async fn teapot() -> Response {
+    StatusCode::IM_A_TEAPOT.into_response()
+}

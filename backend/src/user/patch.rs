@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::omnierror::OmniError;
 
-use super::User;
+use super::{auth::password::hash_password, User};
 
 #[derive(Deserialize)]
 pub struct UserPatch {
@@ -43,5 +43,19 @@ impl User {
         }
 
         Ok(user)
+    }
+    pub async fn patch_password(&self, password: &str, pool: &PgPool) -> Result<(), OmniError> {
+        let hash = hash_password(password)?;
+        match sqlx::query!(
+            "UPDATE users SET password_hash = $1 WHERE id = $2",
+            hash,
+            &self.id
+        )
+        .execute(pool)
+        .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e)?,
+        }
     }
 }

@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{get, patch, post},
     Json, Router,
 };
 use serde::Deserialize;
@@ -22,6 +22,7 @@ pub fn routes() -> Router<SharedState> {
             "/users/{id}",
             get(get_user_by_id).patch(patch_user).delete(delete_user),
         )
+        .route("/users/{id}/change-password", patch(change_password))
 }
 
 #[derive(Deserialize)]
@@ -154,6 +155,50 @@ async fn delete_user(
             Err(e) => e.respond(),
         },
         Ok(None) => (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
+        Err(e) => e.respond(),
+    }
+}
+
+#[derive(Deserialize)]
+struct ChangePassword {
+    password: String,
+}
+async fn change_password(
+    headers: HeaderMap,
+    cookies: Cookies,
+    Path(id): Path<Uuid>,
+    State(state): State<SharedState>,
+    Json(pass): Json<ChangePassword>,
+) -> Response {
+    let actor = match User::authenticate(&headers, cookies, &state.dbpool).await {
+        Ok(u) => u,
+        Err(e) => return e.respond(),
+    };
+    let target = match User::get_by_id(&id, &state.dbpool).await {
+        Ok(Some(u)) => u,
+        Ok(None) => return (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
+        Err(e) => return e.respond(),
+    };
+
+    if target.id == actor.id {
+        if !actor.has_permission(UA::UsersChangeOwnPasswordPermission) {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+    } else {
+        if !actor.has_permission(UA::UsersManagePasswordsPermission) {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+        if actor.clearance <= target.clearance {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+    }
+
+    if let Err(e) = User::is_valid_password(&pass.password) {
+        return OmniError::from(e).respond();
+    }
+
+    match target.patch_password(&pass.password, &state.dbpool).await {
+        Ok(_) => (StatusCode::OK, "Password updated.").into_response(),
         Err(e) => e.respond(),
     }
 }

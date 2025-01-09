@@ -1,0 +1,29 @@
+[package]
+name = "quote-engine-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sqlx = { version = "0.8.3", features = [
+    "chrono",
+    "postgres",
+    "runtime-tokio-rustls",
+    "uuid",
+] }
+argon2 = "0.5.3"
+axum = { version = "0.8.1", features = ["macros", "ws"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+dotenvy = "0.15.7"
+rand = "0.8.5"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.134"
+sha2 = "0.10.8"
+strum = { version = "0.26.3", features = ["derive"] }
+thiserror = "2.0.9"
+tokio = { version = "1.42.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+uuid = { version = "1.11.0", features = ["serde", "v7"] }
+base64 = "0.22.1"
+base32 = "0.5.1"
+tower-cookies = "0.11.0"

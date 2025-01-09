@@ -6,6 +6,7 @@ mod router;
 mod setup;
 mod state;
 mod user;
+mod workers;
 
 #[tokio::main]
 async fn main() {
@@ -14,6 +15,7 @@ async fn main() {
 
     let state = state::init().await;
     let router = router::init(state.clone());
+    workers::init(state);
 
     let listener = setup::init_listener().await;
 

@@ -1,11 +1,9 @@
-use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
-use rand::rngs::OsRng;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::omnierror::OmniError;
 
-use super::User;
+use super::{auth::password::hash_password, User};
 
 impl User {
     pub async fn get_by_id(id: &Uuid, pool: &PgPool) -> Result<Option<User>, OmniError> {
@@ -62,14 +60,7 @@ impl User {
         }
     }
     pub async fn create(user: User, password: &str, pool: &PgPool) -> Result<User, OmniError> {
-        let hash = {
-            let argon = Argon2::default();
-            let salt = SaltString::generate(&mut OsRng);
-            match argon.hash_password(password.as_bytes(), &salt) {
-                Ok(hash) => hash.to_string(),
-                Err(err) => return Err(err)?,
-            }
-        };
+        let hash = hash_password(password)?;
         match sqlx::query!(
             "INSERT INTO users VALUES ($1, $2, $3, $4, $5)",
             user.id,

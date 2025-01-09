@@ -1,4 +1,3 @@
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::http::{header::AUTHORIZATION, HeaderMap};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use sqlx::PgPool;
@@ -9,7 +8,7 @@ use crate::{
     user::{auth::cookie::set_session_token_cookie, User},
 };
 
-use super::{error::AuthError, session::Session, SESSION_COOKIE_NAME};
+use super::{error::AuthError, password::verify_password, session::Session, SESSION_COOKIE_NAME};
 
 impl User {
     pub async fn authenticate(
@@ -68,15 +67,14 @@ impl User {
             Some(rec) => rec.password_hash,
             None => return Err(AuthError::InvalidCredentials)?,
         };
-        let argon = Argon2::default();
-        let hash = PasswordHash::new(&hash)?;
-        match argon.verify_password(passw.as_bytes(), &hash).is_ok() {
-            true => match User::get_by_handle(login, pool).await {
+        match verify_password(passw, &hash) {
+            Ok(true) => match User::get_by_handle(login, pool).await {
                 Ok(Some(u)) => Ok(u),
                 Ok(None) => Err(AuthError::InvalidCredentials)?,
                 Err(e) => Err(e)?,
             },
-            false => Err(AuthError::InvalidCredentials)?,
+            Ok(false) => Err(AuthError::InvalidCredentials)?,
+            Err(e) => Err(e)?,
         }
     }
     async fn auth_via_session(

@@ -3,6 +3,7 @@ CREATE TABLE users (
     handle              TEXT NOT NULL UNIQUE,
     clearance           SMALLINT NOT NULL,
     attributes          BIGINT NOT NULL,
+    picture             TEXT DEFAULT NULL,
     
     password_hash       TEXT NOT NULL
 );
@@ -44,4 +45,9 @@ CREATE TABLE authors (
 );
 
 CREATE TABLE lines (
+    id                  UUID NOT NULL UNIQUE PRIMARY KEY,
+    quote_id            UUID NOT NULL REFERENCES quotes(id),
+    author_id           UUID NOT NULL REFERENCES authors(id),
+    content             TEXT NOT NULL,
+    position            INTEGER NOT NULL
 );

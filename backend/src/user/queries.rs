@@ -62,7 +62,7 @@ impl User {
     pub async fn create(user: User, password: &str, pool: &PgPool) -> Result<User, OmniError> {
         let hash = hash_password(password)?;
         match sqlx::query!(
-            "INSERT INTO users VALUES ($1, $2, $3, $4, $5)",
+            "INSERT INTO users(id, handle, clearance, attributes, password_hash) VALUES ($1, $2, $3, $4, $5)",
             user.id,
             user.handle,
             user.clearance as i32,

@@ -14,6 +14,7 @@ pub fn init(state: SharedState) {
 async fn system_health_diagnostics(state: SharedState) {
     info!("System health diagnostics thread worker ready!");
     let mut system = System::new();
+    let tx = state.syscast.clone();
     system.refresh_cpu_all();
     loop {
         system.refresh_memory();
@@ -27,8 +28,10 @@ async fn system_health_diagnostics(state: SharedState) {
         };
 
         let mut lock = state.sysinfo.write().await;
-        *lock = sysinfo;
+        *lock = sysinfo.clone();
         drop(lock);
+
+        let _ = tx.send(sysinfo);
 
         sleep(Duration::from_millis(250)).await;
     }

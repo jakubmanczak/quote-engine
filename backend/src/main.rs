@@ -20,6 +20,7 @@ async fn main() {
     let listener = setup::init_listener().await;
 
     setup::signal_readiness();
+    setup::servertest::test_connectivity();
     match axum::serve(listener, router).await {
         Ok(_) => info!("Server stopped."),
         Err(e) => error!("Server error: {e}"),

@@ -88,3 +88,38 @@ pub fn verify_required_env_vars() {
         },
     }
 }
+
+pub mod servertest {
+    use std::time::Duration;
+
+    use tokio::{spawn, time::sleep};
+    use tracing::{info, warn};
+
+    pub fn test_connectivity() {
+        spawn(async {
+            let cl = reqwest::Client::new();
+            let mut iter = 1;
+            loop {
+                match cl.get("http://localhost:2025/").send().await {
+                    Ok(resp) => match resp.status().is_success() {
+                        true => {
+                            info!("Health check passed.");
+                            break;
+                        }
+                        false => (),
+                    },
+                    Err(_) => (),
+                };
+                match iter {
+                    1..=10 => sleep(Duration::from_secs(1)).await,
+                    11..=20 => sleep(Duration::from_secs(29)).await,
+                    _ => {
+                        warn!("Could not connect after 20 tries (5mins). Aborting checks...");
+                        break;
+                    }
+                };
+                iter += 1;
+            }
+        });
+    }
+}

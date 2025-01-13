@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: #ffffff;
+    --foreground: #171717;
+    --some-gray: #292929;
+    --middleground: #555555;
+    --half-transparent: rgba(255, 255, 255, 0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0f0f0f;
+        --foreground: #ededed;
+        --middleground: #444;
+    }
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+}
+
+.bg-dotted {
+    background-size: 40px 40px;
+    background-image: radial-gradient(
+        circle,
+        var(--some-gray) 1px,
+        rgba(0, 0, 0, 0) 1px
+    );
+}

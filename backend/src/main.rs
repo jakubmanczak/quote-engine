@@ -2,6 +2,7 @@ use tracing::{error, info};
 
 mod database;
 mod omnierror;
+mod quotes;
 mod router;
 mod setup;
 mod state;

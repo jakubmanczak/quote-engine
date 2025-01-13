@@ -6,6 +6,7 @@ use crate::omnierror::OmniError;
 use super::{auth::password::hash_password, User};
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct UserPatch {
     pub handle: Option<String>,
     pub clearance: Option<u8>,

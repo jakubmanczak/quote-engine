@@ -28,6 +28,7 @@ impl OmniError {
     pub fn respond(&self) -> Response {
         const ISE: StatusCode = StatusCode::INTERNAL_SERVER_ERROR;
         const BAD: StatusCode = StatusCode::BAD_REQUEST;
+        const NOC: StatusCode = StatusCode::NO_CONTENT;
         use OmniError as E;
         match self {
             E::AuthError(e) => (e.status_code(), e.to_string()).into_response(),
@@ -35,7 +36,16 @@ impl OmniError {
             E::SqlxError(e) => {
                 use sqlx::Error as SE;
                 match e {
-                    SE::RowNotFound => (ISE, "SQLx Error; No rows returned").into_response(),
+                    SE::RowNotFound => (NOC, "SQLx Error; No rows returned").into_response(),
+                    SE::Database(e) => {
+                        if e.is_unique_violation() {
+                            return (BAD, "SQLx Error; Unique Violation").into_response();
+                        }
+                        if e.is_foreign_key_violation() {
+                            return (BAD, "SQLx Error; Foreign Key Violation").into_response();
+                        }
+                        (ISE, "SQLx Error; Database error").into_response()
+                    }
                     _ => (ISE, "SQLx Error; Logged").into_response(),
                 }
             }

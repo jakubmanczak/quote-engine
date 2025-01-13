@@ -1,13 +1,11 @@
 import { DottedEffect } from "@/components/DottedEffect";
 import { GrainEffect } from "@/components/GrainEffect";
-import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
 
 export default function NotFound() {
   return (
     <>
       <DottedEffect />
-      <Navigation />
       {/*  */}
       <div className="relative p-4 max-w-xl flex flex-col w-full self-center bg-background rounded-md border border-middleground">
         <GrainEffect />

@@ -1,12 +1,10 @@
 import { DottedEffect } from "@/components/DottedEffect";
-import { Navigation } from "@/components/Navigation";
 import { Quote } from "@/components/Quote";
 
 export default function Home() {
   return (
     <>
       <DottedEffect />
-      <Navigation />
       {/*  */}
       <div className="mx-auto max-w-2xl w-full">
         <Quote

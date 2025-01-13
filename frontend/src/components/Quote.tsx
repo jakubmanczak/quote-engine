@@ -17,7 +17,7 @@ type QuoteData = {
 };
 
 const ClearanceLevel = (props: { level: number }) => {
-  const color = `hsl(${(props.level / 255) * 100}, 45%, 50%)`;
+  const color = `hsl(${((255 - props.level) / 255) * 100}, 45%, 50%)`;
   return (
     <div className="rounded-full px-3 flex flex-row justify-center items-center gap-2 py-1">
       <LucideLock
@@ -50,17 +50,22 @@ const Quote = (props: { data: QuoteData }) => {
         className="top-4 right-6 -rotate-12 absolute opacity-[.05] scale-[4.5] scale-y-[4.25]"
         aria-hidden
       />
-      {props.data.lines.map((line) => {
+      {props.data.lines.map((line, index) => {
+        const showAuthor =
+          index === props.data.lines.length - 1 ||
+          props.data.lines[index + 1].author.id !== line.author.id;
         return (
           <div key={line.id} className="mb-2">
             <span className="flex flex-row gap-2 relative">
               <LucideQuote className="scale-[.65] scale-y-[.50] mt-[6px] absolute opacity-[.3]" />
               <p className="font-fancy text-2xl ml-6">{line.text}</p>
             </span>
-            <p className="text-sm italic ml-3 flex flex-row gap-[6px]">
-              <span>{"—"}</span>
-              {line.author.name}
-            </p>
+            {showAuthor && (
+              <p className="text-sm italic ml-3 flex flex-row gap-[6px]">
+                <span>{"—"}</span>
+                {line.author.name}
+              </p>
+            )}
           </div>
         );
       })}

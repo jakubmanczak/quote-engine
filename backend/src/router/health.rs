@@ -25,10 +25,10 @@ async fn health(
     State(state): State<SharedState>,
 ) -> Response {
     // infosec: only show system health to actual users
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(_) => (),
-        Err(e) => return e.respond(),
-    };
+    // match User::authenticate(&headers, cookies, &state.dbpool).await {
+    //     Ok(_) => (),
+    //     Err(e) => return e.respond(),
+    // };
 
     let sysinfo = state.sysinfo.read().await;
     Json(&*sysinfo).into_response()
@@ -41,10 +41,10 @@ async fn health_ws_upgrade(
     State(state): State<SharedState>,
 ) -> Response {
     // infosec: only show system health to actual users
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(_) => (),
-        Err(e) => return e.respond(),
-    }
+    // match User::authenticate(&headers, cookies, &state.dbpool).await {
+    //     Ok(_) => (),
+    //     Err(e) => return e.respond(),
+    // }
     ws.on_upgrade(|ws| async { health_ws_stream(state, ws).await })
 }
 

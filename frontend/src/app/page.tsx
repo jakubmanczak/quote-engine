@@ -1,10 +1,13 @@
-import { DottedEffect } from "@/components/DottedEffect";
+// import { DottedEffect } from "@/components/DottedEffect";
 import { Quote } from "@/components/Quote";
 
 export default function Home() {
   return (
     <>
-      <DottedEffect />
+      <h1 className="text-center text-5xl font-fancy">
+        {"Keep note of what people say"}
+      </h1>
+      {/* <DottedEffect /> */}
       {/*  */}
       <div className="mx-auto max-w-2xl w-full">
         <Quote

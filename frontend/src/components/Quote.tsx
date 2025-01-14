@@ -44,7 +44,7 @@ const LikesCounter = (props: { likesnumber: number; liked?: boolean }) => {
 
 const Quote = (props: { data: QuoteData }) => {
   return (
-    <div className="p-4 border border-middleground rounded-md bg-half-transparent backdrop-blur relative overflow-clip">
+    <div className="p-4 bg-sidebar border rounded-md backdrop-blur relative overflow-clip">
       <GrainEffect />
       <LucideQuote
         className="top-4 right-6 -rotate-12 absolute opacity-[.05] scale-[4.5] scale-y-[4.25]"

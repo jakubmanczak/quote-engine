@@ -31,8 +31,8 @@ CREATE TABLE logs (
 
 CREATE TABLE quotes (
     id                  UUID NOT NULL UNIQUE PRIMARY KEY,
-    source              TEXT NOT NULL,
-    context             TEXT NOT NULL,
+    source              TEXT DEFAULT NULL,
+    context             TEXT DEFAULT NULL,
     clearance           BIGINT NOT NULL,
     timestamp           TIMESTAMP NOT NULL
 );

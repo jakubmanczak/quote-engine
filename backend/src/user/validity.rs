@@ -1,7 +1,7 @@
 use super::User;
 
 const HANDLE_BOUND_LOWER: usize = 3;
-const HANDLE_BOUND_UPPER: usize = 32;
+const HANDLE_BOUND_UPPER: usize = 24;
 const PASSWORD_LEN_BOUND_LOWER: usize = 8;
 const PASSWORD_LEN_BOUND_UPPER: usize = 96;
 

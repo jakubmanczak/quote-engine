@@ -1,5 +1,8 @@
+use serde::Serialize;
+use strum::VariantArray;
 use UserAttribute as A;
 
+#[derive(VariantArray, Serialize)]
 pub enum UserAttribute {
     TheEverythingPermission,
     UsersInspectPermission,

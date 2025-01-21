@@ -6,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+use strum::VariantArray;
 use tower_cookies::Cookies;
 use uuid::Uuid;
 
@@ -23,6 +24,7 @@ pub fn routes() -> Router<SharedState> {
             get(get_user_by_id).patch(patch_user).delete(delete_user),
         )
         .route("/users/{id}/change-password", patch(change_password))
+        .route("/users/user-attributes", get(all_user_attributes))
 }
 
 #[derive(Deserialize)]
@@ -201,4 +203,8 @@ async fn change_password(
         Ok(_) => (StatusCode::OK, "Password updated.").into_response(),
         Err(e) => e.respond(),
     }
+}
+
+async fn all_user_attributes() -> Response {
+    Json(UA::VARIANTS).into_response()
 }

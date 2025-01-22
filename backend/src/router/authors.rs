@@ -82,7 +82,7 @@ async fn post_handler(
     }
 
     match Author::create(author, &state.dbpool).await {
-        Ok(author) => Json(author).into_response(),
+        Ok(author) => (StatusCode::CREATED, Json(author)).into_response(),
         Err(e) => return e.respond(),
     }
 }

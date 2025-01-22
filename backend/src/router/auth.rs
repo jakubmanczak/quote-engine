@@ -53,7 +53,7 @@ async fn login(
     };
 
     set_session_token_cookie(&token, cookies);
-    (StatusCode::OK, token).into_response()
+    (StatusCode::CREATED, token).into_response()
 }
 
 const TOO_MANY_TOKENS: &str = "Please provide one token at a time.";

@@ -60,7 +60,7 @@ async fn create_user_manually(
     )
     .await
     {
-        Ok(u) => Json(u).into_response(),
+        Ok(u) => (StatusCode::CREATED, Json(u)).into_response(),
         Err(e) => e.respond(),
     }
 }

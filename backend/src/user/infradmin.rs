@@ -16,6 +16,7 @@ impl User {
             handle: "admin".to_string(),
             clearance: 255,
             attributes: UserAttribute::TheEverythingPermission.get_bit(),
+            joindate: chrono::Utc::now(),
         }
     }
 }

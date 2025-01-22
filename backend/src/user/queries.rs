@@ -8,7 +8,7 @@ use super::{auth::password::hash_password, User};
 impl User {
     pub async fn get_by_id(id: &Uuid, pool: &PgPool) -> Result<Option<User>, OmniError> {
         match sqlx::query!(
-            "SELECT id, handle, clearance, attributes FROM users WHERE id = $1",
+            "SELECT id, handle, clearance, attributes, joindate FROM users WHERE id = $1",
             id
         )
         .fetch_optional(pool)
@@ -19,6 +19,7 @@ impl User {
                 handle: res.handle,
                 clearance: res.clearance as u8,
                 attributes: res.attributes as u64,
+                joindate: res.joindate,
             })),
             Ok(None) => Ok(None),
             Err(err) => Err(err)?,
@@ -26,7 +27,7 @@ impl User {
     }
     pub async fn get_by_handle(handle: &str, pool: &PgPool) -> Result<Option<User>, OmniError> {
         match sqlx::query!(
-            "SELECT id, handle, clearance, attributes FROM users WHERE handle = $1",
+            "SELECT id, handle, clearance, attributes, joindate FROM users WHERE handle = $1",
             handle
         )
         .fetch_optional(pool)
@@ -37,13 +38,14 @@ impl User {
                 handle: res.handle,
                 clearance: res.clearance as u8,
                 attributes: res.attributes as u64,
+                joindate: res.joindate,
             })),
             Ok(None) => Ok(None),
             Err(err) => Err(err)?,
         }
     }
     pub async fn get_all(pool: &PgPool) -> Result<Vec<User>, OmniError> {
-        match sqlx::query!("SELECT id, handle, clearance, attributes FROM users")
+        match sqlx::query!("SELECT id, handle, clearance, attributes, joindate FROM users")
             .fetch_all(pool)
             .await
         {
@@ -54,6 +56,7 @@ impl User {
                     handle: row.handle,
                     clearance: row.clearance as u8,
                     attributes: row.attributes as u64,
+                    joindate: row.joindate,
                 })
                 .collect()),
             Err(err) => Err(err)?,
@@ -62,11 +65,12 @@ impl User {
     pub async fn create(user: User, password: &str, pool: &PgPool) -> Result<User, OmniError> {
         let hash = hash_password(password)?;
         match sqlx::query!(
-            "INSERT INTO users(id, handle, clearance, attributes, password_hash) VALUES ($1, $2, $3, $4, $5)",
+            "INSERT INTO users(id, handle, clearance, attributes, joindate, password_hash) VALUES ($1, $2, $3, $4, $5, $6)",
             user.id,
             user.handle,
             user.clearance as i32,
             user.attributes as i64,
+            user.joindate,
             hash
         )
         .execute(pool)

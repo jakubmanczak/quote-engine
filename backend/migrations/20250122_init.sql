@@ -4,7 +4,8 @@ CREATE TABLE users (
     clearance           SMALLINT NOT NULL,
     attributes          BIGINT NOT NULL,
     picture             TEXT DEFAULT NULL,
-    
+    joindate            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
     password_hash       TEXT NOT NULL
 );
 
@@ -12,7 +13,7 @@ CREATE TABLE sessions (
     id                  UUID NOT NULL UNIQUE PRIMARY KEY,
     token               TEXT NOT NULL UNIQUE,
     user_id             UUID NOT NULL REFERENCES users (id),
-    
+
     issued              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expiry              TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '1 week',
     last_access         TIMESTAMPTZ DEFAULT NULL,

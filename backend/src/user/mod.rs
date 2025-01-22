@@ -1,4 +1,5 @@
 use attributes::{default_attributes_u64, UserAttribute};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -15,6 +16,7 @@ pub struct User {
     pub handle: String,
     pub clearance: u8,
     attributes: u64,
+    pub joindate: DateTime<Utc>,
 }
 
 impl User {
@@ -33,6 +35,7 @@ impl User {
             handle,
             clearance: 1,
             attributes: default_attributes_u64(),
+            joindate: Utc::now(),
         }
     }
 }

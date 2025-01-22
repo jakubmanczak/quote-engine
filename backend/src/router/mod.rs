@@ -6,6 +6,7 @@ mod auth;
 mod authors;
 mod health;
 mod infra;
+mod quotes;
 mod users;
 
 pub fn init(state: SharedState) -> Router {
@@ -16,6 +17,7 @@ pub fn init(state: SharedState) -> Router {
         .merge(auth::routes())
         .merge(users::routes())
         .merge(authors::routes())
+        .merge(quotes::routes())
         .with_state(state)
         .layer(CookieManagerLayer::new())
 }

@@ -19,6 +19,7 @@ pub enum UserAttribute {
     AuthorsCreatePermission,
     AuthorsModifyPermission,
     AuthorsDeletePermission,
+    QuotesCreatePermission,
 
     DisplayCoquetteAvatar,
     DisplayProfileCardFlower,
@@ -63,7 +64,9 @@ impl UserAttribute {
             A::AuthorsModifyPermission => 22,
             // 0b1 << 23-24
             A::AuthorsDeletePermission => 25,
-            // 0b1 << 26-60
+            // 0b1 << 26-31
+            A::QuotesCreatePermission => 32,
+            // 0b1 << 33-60
             A::DisplayCoquetteAvatar => 61,
             A::DisplayProfileCardFlower => 62,
             // 0b1 << 63

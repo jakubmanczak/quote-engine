@@ -24,6 +24,12 @@ pub enum OmniError {
     PassHashError(String),
 }
 
+impl IntoResponse for OmniError {
+    fn into_response(self) -> Response {
+        self.respond()
+    }
+}
+
 impl OmniError {
     pub fn respond(&self) -> Response {
         const ISE: StatusCode = StatusCode::INTERNAL_SERVER_ERROR;

@@ -29,3 +29,4 @@ base32 = "0.5.1"
 tower-cookies = "0.11.0"
 sysinfo = "0.33.1"
 reqwest = "0.12.12"
+tower-http = { version = "0.6.2", features = ["cors"] }

@@ -37,32 +37,26 @@ async fn create_user_manually(
     cookies: Cookies,
     State(state): State<SharedState>,
     Json(user): Json<ManualUserCreation>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.has_permission(UA::UsersManualCreatePermission) {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::UsersManualCreatePermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
 
     if let Err(e) = User::is_valid_handle(&user.handle) {
-        return OmniError::from(e).respond();
+        return Err(e)?;
     }
     if let Err(e) = User::is_valid_password(&user.password) {
-        return OmniError::from(e).respond();
+        return Err(e)?;
     }
 
-    match User::create(
+    let nu = User::create(
         User::new_incomplete(user.handle),
         &user.password,
         &state.dbpool,
     )
-    .await
-    {
-        Ok(u) => (StatusCode::CREATED, Json(u)).into_response(),
-        Err(e) => e.respond(),
-    }
+    .await?;
+    Ok((StatusCode::CREATED, Json(nu)).into_response())
 }
 
 async fn get_user_by_id(
@@ -70,19 +64,15 @@ async fn get_user_by_id(
     cookies: Cookies,
     Path(id): Path<Uuid>,
     State(state): State<SharedState>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.has_permission(UA::UsersInspectPermission) {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::UsersInspectPermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
 
-    match User::get_by_id(&id, &state.dbpool).await {
-        Ok(Some(user)) => Json(user).into_response(),
-        Ok(None) => (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
-        Err(e) => e.respond(),
+    match User::get_by_id(&id, &state.dbpool).await? {
+        Some(user) => Ok(Json(user).into_response()),
+        None => Ok((StatusCode::BAD_REQUEST, "No such user found.").into_response()),
     }
 }
 
@@ -92,72 +82,70 @@ async fn patch_user(
     Path(id): Path<Uuid>,
     State(state): State<SharedState>,
     Json(patch): Json<UserPatch>,
-) -> Response {
-    let actor = match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => u,
-        Err(e) => return e.respond(),
-    };
-    let target = match User::get_by_id(&id, &state.dbpool).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
-        Err(e) => return e.respond(),
+) -> Result<Response, OmniError> {
+    let actor = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    let target = match User::get_by_id(&id, &state.dbpool).await? {
+        Some(u) => u,
+        None => return Ok((StatusCode::BAD_REQUEST, "No such user found.").into_response()),
     };
 
     if actor.id == target.id {
         if patch.handle.is_some() && !actor.has_permission(UA::UsersChangeOwnHandlePermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
     } else {
         if actor.clearance <= target.clearance {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
         if patch.handle.is_some() && !actor.has_permission(UA::UsersManageHandlesPermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
     }
 
     if let Some(clearance) = patch.clearance {
         if !actor.has_permission(UA::UsersManageClearancesPermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
         if clearance > actor.clearance && !actor.has_permission(UA::TheEverythingPermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
     }
 
     if let Some(handle) = &patch.handle {
         if let Err(e) = User::is_valid_handle(handle) {
-            return OmniError::from(e).respond();
+            return Err(e)?;
         }
     }
 
-    match target.patch(patch, &state.dbpool).await {
-        Ok(u) => Json(u).into_response(),
-        Err(e) => e.respond(),
-    }
+    Ok(Json(target.patch(patch, &state.dbpool).await?).into_response())
 }
+
+const DELCLEAR: &str = "Cannot delete a user with higher clearance.";
+const DELADMIN: &str = "Cannot delete the infrastructure administrator.";
 
 async fn delete_user(
     headers: HeaderMap,
     cookies: Cookies,
     Path(id): Path<Uuid>,
     State(state): State<SharedState>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.has_permission(UA::UsersDeletePermission) {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::UsersDeletePermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
 
-    match User::get_by_id(&id, &state.dbpool).await {
-        Ok(Some(user)) => match user.destroy(&state.dbpool).await {
-            Ok(_) => StatusCode::NO_CONTENT.into_response(),
-            Err(e) => e.respond(),
-        },
-        Ok(None) => (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
-        Err(e) => e.respond(),
+    match User::get_by_id(&id, &state.dbpool).await? {
+        Some(target) => {
+            if target.is_infradmin() {
+                return Ok((StatusCode::FORBIDDEN, DELADMIN).into_response());
+            }
+            if target.clearance >= u.clearance {
+                return Ok((StatusCode::FORBIDDEN, DELCLEAR).into_response());
+            }
+            target.destroy(&state.dbpool).await?;
+            Ok(StatusCode::NO_CONTENT.into_response())
+        }
+        None => Ok((StatusCode::BAD_REQUEST, "No such user found.").into_response()),
     }
 }
 
@@ -171,38 +159,32 @@ async fn change_password(
     Path(id): Path<Uuid>,
     State(state): State<SharedState>,
     Json(pass): Json<ChangePassword>,
-) -> Response {
-    let actor = match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => u,
-        Err(e) => return e.respond(),
-    };
-    let target = match User::get_by_id(&id, &state.dbpool).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return (StatusCode::BAD_REQUEST, "No such user found.").into_response(),
-        Err(e) => return e.respond(),
+) -> Result<Response, OmniError> {
+    let actor = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    let target = match User::get_by_id(&id, &state.dbpool).await? {
+        Some(u) => u,
+        None => return Ok((StatusCode::BAD_REQUEST, "No such user found.").into_response()),
     };
 
     if target.id == actor.id {
         if !actor.has_permission(UA::UsersChangeOwnPasswordPermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
     } else {
         if !actor.has_permission(UA::UsersManagePasswordsPermission) {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
         if actor.clearance <= target.clearance {
-            return StatusCode::FORBIDDEN.into_response();
+            return Ok(StatusCode::FORBIDDEN.into_response());
         }
     }
 
     if let Err(e) = User::is_valid_password(&pass.password) {
-        return OmniError::from(e).respond();
+        return Err(e)?;
     }
 
-    match target.patch_password(&pass.password, &state.dbpool).await {
-        Ok(_) => (StatusCode::OK, "Password updated.").into_response(),
-        Err(e) => e.respond(),
-    }
+    target.patch_password(&pass.password, &state.dbpool).await?;
+    Ok((StatusCode::OK, "Password updated.").into_response())
 }
 
 async fn all_user_attributes() -> Response {

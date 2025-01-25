@@ -8,6 +8,7 @@ use axum::{
 use tower_cookies::Cookies;
 
 use crate::{
+    omnierror::OmniError,
     state::SharedState,
     user::{auth::session::Session, User},
 };
@@ -22,36 +23,24 @@ async fn all_users(
     headers: HeaderMap,
     cookies: Cookies,
     State(state): State<SharedState>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.is_infradmin() {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.is_infradmin() {
+        return Ok(StatusCode::FORBIDDEN.into_response());
     }
 
-    match User::get_all(&state.dbpool).await {
-        Ok(users) => Json(users).into_response(),
-        Err(e) => e.respond(),
-    }
+    Ok(Json(User::get_all(&state.dbpool).await?).into_response())
 }
 
 async fn all_sessions(
     headers: HeaderMap,
     cookies: Cookies,
     State(state): State<SharedState>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.is_infradmin() {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
-
-    match Session::get_all(&state.dbpool).await {
-        Ok(sessions) => Json(sessions).into_response(),
-        Err(e) => e.respond(),
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.is_infradmin() {
+        return Ok(StatusCode::FORBIDDEN.into_response());
     }
+
+    Ok(Json(Session::get_all(&state.dbpool).await?).into_response())
 }

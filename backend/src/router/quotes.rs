@@ -9,6 +9,7 @@ use tower_cookies::Cookies;
 use uuid::Uuid;
 
 use crate::{
+    omnierror::OmniError,
     quotes::Quote,
     state::SharedState,
     user::{attributes::UserAttribute as UA, User},
@@ -26,47 +27,34 @@ async fn get_by_id(
     cookies: Cookies,
     Path(id): Path<Uuid>,
     State(state): State<SharedState>,
-) -> Response {
-    match Quote::get_by_id(&id, &state.dbpool).await {
-        Ok(opt) => match opt {
-            Some(q) => {
-                match q.clearance == 0 {
-                    true => (),
-                    false => match User::authenticate(&headers, cookies, &state.dbpool).await {
-                        Ok(u) => match u.clearance >= q.clearance {
-                            true => (),
-                            false => return StatusCode::FORBIDDEN.into_response(),
-                        },
-                        Err(e) => return e.respond(),
-                    },
+) -> Result<Response, OmniError> {
+    match Quote::get_by_id(&id, &state.dbpool).await? {
+        Some(q) => {
+            if q.clearance != 0 {
+                let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+                if u.clearance < q.clearance {
+                    return Ok(StatusCode::FORBIDDEN.into_response());
                 }
-                Json(q).into_response()
             }
-            None => StatusCode::NOT_FOUND.into_response(),
-        },
-        Err(e) => e.respond(),
+            Ok(Json(q).into_response())
+        }
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
 }
 
 // NOTE: this is resource intensive in production
-// throw this out completely
+// it MUST have pagination or streaming
 async fn get_all(
     headers: HeaderMap,
     cookies: Cookies,
     State(state): State<SharedState>,
-) -> Response {
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.has_permission(UA::TheEverythingPermission) {
-            true => (),
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
-
-    match Quote::get_all(&state.dbpool).await {
-        Ok(vec) => Json(vec).into_response(),
-        Err(e) => e.respond(),
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::TheEverythingPermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
     }
+
+    Ok(Json(Quote::get_all(&state.dbpool).await?).into_response())
 }
 
 const BAD_CLEARANCE: &str = "The quote must have appropriate clearance in regard to its submitter.";
@@ -77,24 +65,19 @@ async fn post_new(
     cookies: Cookies,
     State(state): State<SharedState>,
     Json(quote): Json<Quote>,
-) -> Response {
-    let u = match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(u) => match u.has_permission(UA::QuotesCreatePermission) {
-            true => u,
-            false => return StatusCode::FORBIDDEN.into_response(),
-        },
-        Err(e) => return e.respond(),
-    };
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::QuotesCreatePermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
 
     if quote.lines.is_empty() {
-        return (StatusCode::BAD_REQUEST, NO_LINES).into_response();
+        return Ok((StatusCode::BAD_REQUEST, NO_LINES).into_response());
     }
     if quote.clearance > u.clearance {
-        return (StatusCode::BAD_REQUEST, BAD_CLEARANCE).into_response();
+        return Ok((StatusCode::BAD_REQUEST, BAD_CLEARANCE).into_response());
     }
 
-    match Quote::create(quote, &state.dbpool).await {
-        Ok(q) => Json(q).into_response(),
-        Err(e) => e.respond(),
-    }
+    let quote = Quote::create(quote, &state.dbpool).await?;
+    Ok((StatusCode::CREATED, Json(quote)).into_response())
 }

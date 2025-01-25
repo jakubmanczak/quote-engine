@@ -5,33 +5,29 @@ use axum::{
     },
     http::HeaderMap,
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{any, get},
     Json, Router,
 };
 use tower_cookies::Cookies;
 use tracing::error;
 
-use crate::{state::SharedState, user::User};
+use crate::{omnierror::OmniError, state::SharedState, user::User};
 
 pub fn routes() -> Router<SharedState> {
     Router::new()
         .route("/health", get(health))
-        .route("/health/ws", get(health_ws_upgrade))
+        .route("/health/ws", any(health_ws_upgrade))
 }
 
 async fn health(
     headers: HeaderMap,
     cookies: Cookies,
     State(state): State<SharedState>,
-) -> Response {
+) -> Result<Response, OmniError> {
     // infosec: only show system health to actual users
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(_) => (),
-        Err(e) => return e.respond(),
-    };
-
+    User::authenticate(&headers, cookies, &state.dbpool).await?;
     let sysinfo = state.sysinfo.read().await;
-    Json(&*sysinfo).into_response()
+    Ok(Json(&*sysinfo).into_response())
 }
 
 async fn health_ws_upgrade(
@@ -39,13 +35,10 @@ async fn health_ws_upgrade(
     cookies: Cookies,
     ws: WebSocketUpgrade,
     State(state): State<SharedState>,
-) -> Response {
+) -> Result<Response, OmniError> {
     // infosec: only show system health to actual users
-    match User::authenticate(&headers, cookies, &state.dbpool).await {
-        Ok(_) => (),
-        Err(e) => return e.respond(),
-    }
-    ws.on_upgrade(|ws| async { health_ws_stream(state, ws).await })
+    User::authenticate(&headers, cookies, &state.dbpool).await?;
+    Ok(ws.on_upgrade(|ws| async { health_ws_stream(state, ws).await }))
 }
 
 async fn health_ws_stream(state: SharedState, mut ws: WebSocket) {

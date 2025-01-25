@@ -1,6 +1,20 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
+
+export const qfetch = async (
+  path: string | URL | globalThis.Request,
+  init?: RequestInit,
+) => {
+  const input =
+    process.env.NODE_ENV === "production"
+      ? `/api${path}`
+      : `http://localhost:2025${path}`;
+  return fetch(input, {
+    credentials: "include",
+    ...init,
+  });
+};

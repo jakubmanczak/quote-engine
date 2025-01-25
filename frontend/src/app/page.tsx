@@ -1,9 +1,10 @@
 // import { DottedEffect } from "@/components/DottedEffect";
 import { Quote } from "@/components/Quote";
+import { Sidenav } from "@/components/Sidenav";
 
 export default function Home() {
   return (
-    <>
+    <Sidenav>
       <h1 className="text-center text-5xl font-fancy">
         {"Keep note of what people say"}
       </h1>
@@ -37,6 +38,6 @@ export default function Home() {
           }}
         />
       </div>
-    </>
+    </Sidenav>
   );
 }

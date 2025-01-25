@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  LucideUser,
-  Sparkles,
-} from "lucide-react";
+import { BadgeCheck, ChevronsUpDown, LogOut, LucideUser } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -26,16 +18,44 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import Link from "next/link";
+import { qfetch } from "@/lib/utils";
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    handle: string;
-    avatar: string;
-  };
-}) {
+export function NavUser() {
   const { isMobile } = useSidebar();
+  const [user, setUser] = useState<User | "none">("none");
+
+  const fetchUser = async () => {
+    const res = await qfetch("/users/me");
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data);
+    } else {
+      setUser("none");
+    }
+  };
+  const logout = async () => {
+    const res = await qfetch("/auth/clear", { method: "POST" });
+    if (res.ok) {
+      setUser("none");
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  if (user === "none") {
+    return (
+      <Link href={"/auth"} className="">
+        <Button variant={"secondary"} className="w-full h-12">
+          Log in
+        </Button>
+      </Link>
+    );
+  }
 
   return (
     <SidebarMenu>
@@ -54,7 +74,7 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{"You"}</span>
-                <span className="truncate text-xs">{user.handle}</span>
+                <span className="truncate text-xs">{`@${user.handle}`}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -81,31 +101,18 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <BadgeCheck />
                 Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
+              </DropdownMenuItem> */}
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => logout()}
+              >
+                <LogOut />
+                Log out
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

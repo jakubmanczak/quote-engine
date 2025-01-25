@@ -8,11 +8,9 @@
     --half-transparent: rgba(255, 255, 255, 0.5);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --middleground: #444;
-        --half-transparent: rgba(255, 255, 255, 0.07);
-    }
+.dark {
+    --middleground: #888;
+    --half-transparent: rgba(255, 255, 255, 0.07);
 }
 
 .bg-dotted {

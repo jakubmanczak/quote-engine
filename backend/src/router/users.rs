@@ -23,6 +23,7 @@ pub fn routes() -> Router<SharedState> {
             "/users/{id}",
             get(get_user_by_id).patch(patch_user).delete(delete_user),
         )
+        .route("/users/me", get(get_me))
         .route("/users/{id}/change-password", patch(change_password))
         .route("/users/user-attributes", get(all_user_attributes))
 }
@@ -74,6 +75,15 @@ async fn get_user_by_id(
         Some(user) => Ok(Json(user).into_response()),
         None => Ok((StatusCode::BAD_REQUEST, "No such user found.").into_response()),
     }
+}
+
+async fn get_me(
+    headers: HeaderMap,
+    cookies: Cookies,
+    State(state): State<SharedState>,
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    Ok(Json(u).into_response())
 }
 
 async fn patch_user(

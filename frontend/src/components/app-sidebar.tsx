@@ -55,7 +55,7 @@ const data = {
     },
     {
       title: "Authors",
-      url: "/",
+      url: "/authors",
       icon: LucideContact,
     },
     {

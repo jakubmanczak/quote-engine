@@ -19,7 +19,7 @@ pub fn routes() -> Router<SharedState> {
     Router::new()
         .route("/quotes", post(post_new))
         .route("/quotes/all", get(get_all))
-        .route("/quotes/{id}", get(get_by_id))
+        .route("/quotes/{id}", get(get_by_id).delete(delete))
         .route("/quotes/randompublic", get(get_random))
 }
 
@@ -87,9 +87,32 @@ async fn post_new(
         return Ok((StatusCode::BAD_REQUEST, NO_LINES).into_response());
     }
     if quote.clearance > u.clearance {
-        return Ok((StatusCode::BAD_REQUEST, BAD_CLEARANCE).into_response());
+        return Ok((StatusCode::FORBIDDEN, BAD_CLEARANCE).into_response());
     }
 
     let quote = Quote::create(quote, &state.dbpool).await?;
     Ok((StatusCode::CREATED, Json(quote)).into_response())
+}
+
+async fn delete(
+    headers: HeaderMap,
+    cookies: Cookies,
+    Path(id): Path<Uuid>,
+    State(state): State<SharedState>,
+) -> Result<Response, OmniError> {
+    let u = User::authenticate(&headers, cookies, &state.dbpool).await?;
+    if !u.has_permission(UA::QuotesDeletePermission) {
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+
+    let q = match Quote::get_by_id(&id, &state.dbpool).await? {
+        Some(q) => q,
+        None => return Ok(StatusCode::NOT_FOUND.into_response()),
+    };
+    if q.clearance >= u.clearance {
+        return Ok((StatusCode::FORBIDDEN, BAD_CLEARANCE).into_response());
+    }
+
+    q.delete(&state.dbpool).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
 }

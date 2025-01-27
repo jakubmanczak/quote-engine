@@ -286,4 +286,32 @@ impl Quote {
         tr.commit().await?;
         Ok(quote)
     }
+    pub async fn delete(self, pool: &PgPool) -> Result<(), OmniError> {
+        let mut tr = pool.begin().await?;
+
+        match sqlx::query!("DELETE FROM lines WHERE quote_id = $1", self.id)
+            .execute(&mut *tr)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                tr.rollback().await?;
+                return Err(e)?;
+            }
+        }
+
+        match sqlx::query!("DELETE FROM quotes WHERE id = $1", self.id)
+            .execute(&mut *tr)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                tr.rollback().await?;
+                return Err(e)?;
+            }
+        }
+
+        tr.commit().await?;
+        Ok(())
+    }
 }

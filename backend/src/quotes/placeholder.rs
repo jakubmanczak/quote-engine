@@ -11,8 +11,8 @@ pub fn return_placeholder_random_public_quote() -> Quote {
         Uuid::nil(),
         Author {
             id: Uuid::nil(),
-            fullname: String::from("John Doe"),
-            codename: String::from(""),
+            fullname: String::from("Pixieline"),
+            codename: String::from("The QuoteEngine Pixie"),
         },
     );
     Quote {
@@ -24,14 +24,17 @@ pub fn return_placeholder_random_public_quote() -> Quote {
             NaiveTime::from_hms_opt(0, 24, 0).unwrap(),
         ),
         authors,
-        lines: vec![QuoteLine {
-            id: Uuid::nil(),
-            content: String::from("What should I make this say if there's no public quote?"),
-            author_id: Uuid::nil(),
-        }, QuoteLine {
-            id: Uuid::nil(),
-            content: String::from("...What if - I made a fake quote that informs the user a random quote with a clearance of 0 will be displayed here?"),
-            author_id: Uuid::nil(),
-        }],
+        lines: vec![
+            QuoteLine {
+                id: Uuid::nil(),
+                content: String::from("Hey, you have no public quotes in your database yet!"),
+                author_id: Uuid::nil(),
+            },
+            QuoteLine {
+                id: Uuid::nil(),
+                content: String::from("You should add some."),
+                author_id: Uuid::nil(),
+            },
+        ],
     }
 }

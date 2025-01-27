@@ -1,7 +1,6 @@
 "use client";
 
-import { BadgeCheck, ChevronsUpDown, LogOut, LucideUser } from "lucide-react";
-
+import { ChevronsUpDown, LogOut, LucideUser } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -22,6 +21,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { qfetch } from "@/lib/utils";
+import type { User } from "@/types/users";
 
 export function NavUser() {
   const { isMobile } = useSidebar();

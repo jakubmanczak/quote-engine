@@ -1,8 +1,12 @@
 // import { DottedEffect } from "@/components/DottedEffect";
 import { Quote } from "@/components/Quote";
 import { Sidenav } from "@/components/Sidenav";
+import { qfetch } from "@/lib/utils";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export default async function Home() {
+  const res = await qfetch("/quotes/randompublic");
+  const data = await res.json();
   return (
     <Sidenav>
       <h1 className="text-center text-5xl font-fancy">
@@ -11,32 +15,7 @@ export default function Home() {
       {/* <DottedEffect /> */}
       {/*  */}
       <div className="mx-auto max-w-2xl w-full">
-        <Quote
-          data={{
-            lines: [
-              {
-                id: "1",
-                text: "Lewica w kryzysie, ale spoko – Polska też.",
-                author: {
-                  id: "dziober",
-                  name: "dzioba",
-                },
-              },
-              {
-                id: "2",
-                text: "To mówi wiele o niczym.",
-                author: {
-                  id: "json",
-                  name: "jamesen",
-                },
-              },
-            ],
-            clearance: 0,
-            likes: 13,
-            timestamp: "2024/12/16 @ 19:48",
-            context: "W kontekście politycznym...",
-          }}
-        />
+        <Quote data={data} />
       </div>
     </Sidenav>
   );

@@ -11,7 +11,7 @@ export const qfetch = async (
 ) => {
   const input =
     process.env.NODE_ENV === "production"
-      ? `/api${path}`
+      ? `${process.env["NEXT_PUBLIC_API_URL"]}${path}`
       : `http://localhost:2025${path}`;
   return fetch(input, {
     credentials: "include",

@@ -61,7 +61,7 @@ const Quote = (props: { data: QuoteData }) => {
           index === props.data.lines.length - 1 ||
           props.data.lines[index + 1].author_id !== line.author_id;
         return (
-          <div key={line.id} className="mb-2">
+          <div key={`${line.id}/${index}`} className="mb-2">
             <span className="flex flex-row gap-2 relative">
               <LucideQuote className="scale-[.65] scale-y-[.50] mt-[6px] absolute opacity-[.3]" />
               <p className="font-fancy text-2xl ml-6">{line.content}</p>

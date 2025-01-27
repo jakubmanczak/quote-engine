@@ -6,6 +6,7 @@ import { qfetch } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export default async function Home() {
   const res = await qfetch("/quotes/randompublic");
+  const ok = res.ok;
   const data = await res.json();
   return (
     <Sidenav>
@@ -15,7 +16,8 @@ export default async function Home() {
       {/* <DottedEffect /> */}
       {/*  */}
       <div className="mx-auto max-w-2xl w-full">
-        <Quote data={data} />
+        {ok && <Quote data={data} />}
+        {!ok && "Could not fetch a random public quote."}
       </div>
     </Sidenav>
   );

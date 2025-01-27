@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     omnierror::OmniError,
-    quotes::Quote,
+    quotes::{placeholder::return_placeholder_random_public_quote, Quote},
     state::SharedState,
     user::{attributes::UserAttribute as UA, User},
 };
@@ -20,6 +20,7 @@ pub fn routes() -> Router<SharedState> {
         .route("/quotes", post(post_new))
         .route("/quotes/all", get(get_all))
         .route("/quotes/{id}", get(get_by_id))
+        .route("/quotes/randompublic", get(get_random))
 }
 
 async fn get_by_id(
@@ -39,6 +40,17 @@ async fn get_by_id(
             Ok(Json(q).into_response())
         }
         None => Ok(StatusCode::NOT_FOUND.into_response()),
+    }
+}
+
+async fn get_random(
+    headers: HeaderMap,
+    cookies: Cookies,
+    State(state): State<SharedState>,
+) -> Result<Response, OmniError> {
+    match Quote::get_random_public(&state.dbpool).await? {
+        Some(q) => Ok(Json(q).into_response()),
+        None => Ok(Json(return_placeholder_random_public_quote()).into_response()),
     }
 }
 

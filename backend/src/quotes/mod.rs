@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::omnierror::OmniError;
 
 pub mod authors;
+pub mod placeholder;
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -121,6 +122,66 @@ impl Quote {
                 }
 
                 Ok(qvec)
+            }
+            Err(e) => Err(e)?,
+        }
+    }
+    pub async fn get_random_public(pool: &PgPool) -> Result<Option<Quote>, OmniError> {
+        match sqlx::query!(
+            r#"
+                WITH randomquote AS (
+                    SELECT id FROM quotes WHERE clearance = 0
+                    ORDER BY random() LIMIT 1
+                )
+                SELECT
+                    quotes.id AS quote_id, quotes.timestamp AS timestamp,
+                    quotes.context AS context, quotes.clearance AS clearance,
+                    lines.id AS line_id, lines.content AS line_content,
+                    authors.id AS author_id, authors.fullname AS author_fullname,
+                    authors.codename AS author_codename
+                FROM quotes
+                LEFT JOIN lines ON quotes.id = lines.quote_id
+                LEFT JOIN authors ON lines.author_id = authors.id
+                WHERE quotes.id = (SELECT id FROM randomquote)
+                ORDER BY quotes.id DESC, lines.position ASC
+            "#
+        )
+        .fetch_all(pool)
+        .await
+        {
+            Ok(recs) => {
+                let mut q: Quote;
+                if let Some(rec) = recs.first() {
+                    q = Quote {
+                        id: rec.quote_id,
+                        clearance: rec.clearance as u8,
+                        timestamp: rec.timestamp,
+                        context: rec.context.clone(),
+                        authors: HashMap::new(),
+                        lines: Vec::new(),
+                    };
+                } else {
+                    return Ok(None);
+                }
+                for rec in recs {
+                    q.lines.push(QuoteLine {
+                        id: rec.line_id,
+                        content: rec.line_content,
+                        author_id: rec.author_id,
+                    });
+                    if !q.authors.contains_key(&rec.author_id) {
+                        q.authors.insert(
+                            rec.author_id,
+                            Author {
+                                id: rec.author_id,
+                                fullname: rec.author_fullname,
+                                codename: rec.author_codename,
+                            },
+                        );
+                    }
+                }
+
+                Ok(Some(q))
             }
             Err(e) => Err(e)?,
         }

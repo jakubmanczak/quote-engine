@@ -1,4 +1,4 @@
-import { LucideHeart, LucideLock, LucideQuote } from "lucide-react";
+import { LucideLock, LucideQuote } from "lucide-react";
 import { GrainEffect } from "./GrainEffect";
 
 type QuoteData = {
@@ -37,16 +37,16 @@ const ClearanceLevel = (props: { level: number }) => {
   );
 };
 
-const LikesCounter = (props: { likesnumber: number; liked?: boolean }) => {
-  return (
-    <div className="rounded-full px-3 flex flex-row justify-center items-center gap-2 hover:bg-half-transparent cursor-pointer transition py-1">
-      <LucideHeart
-        className={`size-[16px] ${props.liked && "fill-pink-600 text-pink-600"}`}
-      />
-      <span>{props.likesnumber}</span>
-    </div>
-  );
-};
+// const LikesCounter = (props: { likesnumber: number; liked?: boolean }) => {
+//   return (
+//     <div className="rounded-full px-3 flex flex-row justify-center items-center gap-2 hover:bg-half-transparent cursor-pointer transition py-1">
+//       <LucideHeart
+//         className={`size-[16px] ${props.liked && "fill-pink-600 text-pink-600"}`}
+//       />
+//       <span>{props.likesnumber}</span>
+//     </div>
+//   );
+// };
 
 const Quote = (props: { data: QuoteData }) => {
   return (
@@ -79,8 +79,8 @@ const Quote = (props: { data: QuoteData }) => {
         {props.data.timestamp.replace("T", " ")}
         <span className="ml-2">{"⋅"}</span>
         <ClearanceLevel level={props.data.clearance} />
-        <span>{"⋅"}</span>
-        <LikesCounter likesnumber={props.data.likes || 0} />
+        {/* <span>{"⋅"}</span> */}
+        {/* <LikesCounter likesnumber={props.data.likes || 0} /> */}
         {props.data.context && <span className="mr-2">{"⋅"}</span>}
         <span className="italic">{props.data.context}</span>
       </div>

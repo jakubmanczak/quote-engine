@@ -44,12 +44,11 @@ const data = {
         },
         {
           title: "Recent",
-          disabled: true,
           url: "/",
         },
         {
           title: "Create",
-          url: "/",
+          url: "/quotes/create",
         },
       ],
     },

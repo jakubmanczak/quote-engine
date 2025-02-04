@@ -4,9 +4,13 @@ import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { CopyAuthorID } from "./CopyID";
+import { Option, Some } from "@/lib/option";
+import { User } from "@/types/users";
+import { DeleteAuthorButton } from "./DeleteAuthorButton";
 
 type AuthorData = {
   id: string;
@@ -20,7 +24,10 @@ type ExtendedAuthorData = {
   line_count: number;
 };
 
-const Author = (props: { data: ExtendedAuthorData }) => {
+const Author = (props: {
+  authordata: ExtendedAuthorData;
+  userdata: Option<User>;
+}) => {
   return (
     <div className="p-3 pt-4 w-80 bg-sidebar border rounded-md backdrop-blur relative overflow-clip">
       <GrainEffect />
@@ -29,10 +36,10 @@ const Author = (props: { data: ExtendedAuthorData }) => {
         aria-hidden
       />
       <h2 className="text-xl text-center font-semibold">
-        {props.data.author.fullname}
+        {props.authordata.author.fullname}
       </h2>
       <p className="text-sm text-center text-gray-500 italic">
-        {props.data.author.codename}
+        {props.authordata.author.codename}
       </p>
       <hr className="my-4" />
       <div className="flex flex-row justify-around">
@@ -40,11 +47,11 @@ const Author = (props: { data: ExtendedAuthorData }) => {
           <p className="uppercase font-semibold text-middleground">
             {"Quotes"}
           </p>
-          <h3 className="text-2xl">{props.data.quote_count}</h3>
+          <h3 className="text-2xl">{props.authordata.quote_count}</h3>
         </div>
         <div className="text-center">
           <p className="uppercase font-semibold text-middleground">{"Lines"}</p>
-          <h3 className="text-2xl">{props.data.line_count}</h3>
+          <h3 className="text-2xl">{props.authordata.line_count}</h3>
         </div>
       </div>
       <div className="flex flex-row mt-4 gap-3">
@@ -59,7 +66,15 @@ const Author = (props: { data: ExtendedAuthorData }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <CopyAuthorID id={props.data.author.id} />
+            <CopyAuthorID id={props.authordata.author.id} />
+            {props.userdata instanceof Some && (
+              <>
+                <DropdownMenuSeparator />
+                {/* <ModifyAuthorButton id={props.authordata.author.id} />
+                <DropdownMenuSeparator /> */}
+                <DeleteAuthorButton id={props.authordata.author.id} />
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -44,9 +44,15 @@ impl Author {
         }
     }
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Author>, OmniError> {
-        match sqlx::query_as!(Author, "SELECT id, fullname, codename FROM authors")
-            .fetch_all(pool)
-            .await
+        match sqlx::query_as!(
+            Author,
+            r#"
+            SELECT id, fullname, codename FROM authors
+            ORDER BY fullname
+            "#
+        )
+        .fetch_all(pool)
+        .await
         {
             Ok(authors) => Ok(authors),
             Err(e) => Err(OmniError::from(e)),
@@ -139,7 +145,7 @@ impl ExtendedAuthor {
                 COUNT(lines.id) as line_count
             FROM authors LEFT JOIN lines ON authors.id = lines.author_id
             GROUP BY authors.id
-            ORDER BY authors.fullname
+            ORDER BY quote_count DESC, line_count DESC, authors.fullname
             "#
         )
         .fetch_all(pool)
